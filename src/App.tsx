@@ -1,21 +1,38 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/AuthProvider";
 import { SignIn } from "./pages/SignIn";
 import { Waiting } from "./pages/Waiting";
 import { NotLinked } from "./pages/NotLinked";
 import { Placeholder } from "./pages/Placeholder";
+import { InviteRedeem } from "./pages/InviteRedeem";
+import { JoinRedeem } from "./pages/JoinRedeem";
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { session, person, loading } = useAuth();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+  const joinCode = searchParams.get("code");
+  const isJoinRoute = location.pathname === "/join" || !!joinCode;
 
   if (loading) return null; // render nothing rather than a spinner-gated screen
+
+  // The join-code path needs its own UI before a session exists too (code
+  // entry, the parent/dancer/instructor tiles, sign-up) — everything else
+  // below assumes a session already exists.
+  if (isJoinRoute && (!session || person === undefined)) return <JoinRedeem />;
+
   if (!session) return <SignIn />;
 
-  // TODO (Prompt 1): if the URL carries ?invite=<token> or
-  // /join?code=<code>&scope=..., redeem it here via callApp('redeem_invite', ...)
-  // or callApp('redeem_join_code', ...) BEFORE falling through to these
-  // states — a freshly-redeemed person won't be in `person` yet on this
-  // render, so refreshPerson() after a successful redeem.
+  if (inviteToken && person === undefined) return <InviteRedeem />;
+
   if (person === undefined) return <NotLinked />;
   if (person === null) return null; // still loading the person row
   if (person.status === "pending") return <Waiting />;

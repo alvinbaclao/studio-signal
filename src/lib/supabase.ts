@@ -28,11 +28,13 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
  * Example:
  *   const { data, error } = await callApp('redeem_invite', { p_token: token })
  */
+type AppFunctionName = keyof Database["app"]["Functions"];
+
 export function callApp<T = unknown>(
-  fn: string,
+  fn: AppFunctionName,
   args?: Record<string, unknown>
 ) {
-  return supabase.schema("app").rpc(fn, args ?? {}) as unknown as Promise<{
+  return supabase.schema("app").rpc(fn, (args ?? {}) as never) as unknown as Promise<{
     data: T | null;
     error: { message: string } | null;
   }>;
