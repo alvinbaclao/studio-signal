@@ -48,7 +48,7 @@ const tileStyle: React.CSSProperties = {
 // page in a different tab or device. See BUILD_PLAN.md Task 1.
 export function JoinRedeem() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { session, refreshPerson } = useAuth();
+  const { session, refreshPerson, setNeedsProfileCompletion } = useAuth();
 
   const code = searchParams.get("code");
   const scope = asScope(searchParams.get("scope"));
@@ -86,6 +86,8 @@ export function JoinRedeem() {
         setRedeemError(error.message);
         return;
       }
+      // Route through CompleteProfile once (Task 4) before Waiting/home.
+      setNeedsProfileCompletion(true);
       await refreshPerson();
       setSearchParams({}, { replace: true });
     });

@@ -10,7 +10,7 @@ import { useAuth } from "../lib/AuthProvider";
 // email lookup.
 export function InviteRedeem() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { refreshPerson } = useAuth();
+  const { refreshPerson, setNeedsProfileCompletion } = useAuth();
   const token = searchParams.get("invite");
   const [error, setError] = useState<string | null>(null);
   const attempted = useRef(false);
@@ -25,6 +25,8 @@ export function InviteRedeem() {
           setError(error.message);
           return;
         }
+        // Route through CompleteProfile once (Task 4) before Waiting/home.
+        setNeedsProfileCompletion(true);
         await refreshPerson();
         // Drop the token from the URL/history now that it's been used once.
         setSearchParams({}, { replace: true });

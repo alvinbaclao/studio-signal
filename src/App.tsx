@@ -15,10 +15,11 @@ import { InviteRedeem } from "./pages/InviteRedeem";
 import { JoinRedeem } from "./pages/JoinRedeem";
 import { DirectorHome } from "./pages/DirectorHome";
 import { Settings } from "./pages/Settings";
+import { CompleteProfile } from "./pages/CompleteProfile";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
-  const { session, person, loading } = useAuth();
+  const { session, person, loading, needsProfileCompletion } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("invite");
@@ -38,6 +39,13 @@ function Gate({ children }: { children: React.ReactNode }) {
 
   if (person === undefined) return <NotLinked />;
   if (person === null) return null; // still loading the person row
+
+  // A person fresh out of redeem_invite/redeem_join_code completes their
+  // profile once (Task 4) before landing on Waiting or their home screen,
+  // regardless of status — an invited (confirmed) person still needs this
+  // step just as much as a self-serve (pending) one.
+  if (needsProfileCompletion) return <CompleteProfile />;
+
   if (person.status === "pending") return <Waiting />;
 
   return <>{children}</>;

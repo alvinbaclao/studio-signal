@@ -28,19 +28,41 @@ interface AuthState {
   person: CurrentPerson | null | undefined;
   loading: boolean;
   refreshPerson: () => Promise<void>;
+  /** Set right after a fresh redeem_invite/redeem_join_code succeeds, so
+   *  Gate routes to CompleteProfile once (BUILD_PLAN Task 4) before Waiting
+   *  or the person's home screen. Backed by sessionStorage so it survives a
+   *  reload mid-flow, but only for this tab — there's no schema column for
+   *  "has this person finished onboarding," and there shouldn't be one just
+   *  for a screen that's only ever shown once right after redemption. */
+  needsProfileCompletion: boolean;
+  setNeedsProfileCompletion: (value: boolean) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+
+const ONBOARDING_KEY = "needs-profile-completion";
 
 // Load the signed-in person exactly this way, and nowhere else — see
 // PROJECT_KNOWLEDGE.md: "load the current person via
 // select * from person where auth_user_id = auth.uid()". Never match by
 // email; never write to person.auth_user_id from here or anywhere in the
 // client — only app.redeem_invite and app.redeem_join_code may ever set it.
+//
+// The explicit .eq("auth_user_id", ...) below is load-bearing, not
+// decorative: a pending person's RLS visibility legitimately includes more
+// than just their own row (e.g. the studio's Director, for contact
+// purposes), so an unfiltered `.limit(1)` can silently return someone
+// else's row — this was live-tested and confirmed as a real bug during
+// BUILD_PLAN Task 4's verification, not a hypothetical.
 async function loadCurrentPerson(): Promise<CurrentPerson | null> {
+  const { data: userData } = await supabase.auth.getUser();
+  const authUserId = userData.user?.id;
+  if (!authUserId) return null;
+
   const { data: personRows, error: personError } = await supabase
     .from("person")
     .select("id, studio_id, full_name, status")
+    .eq("auth_user_id", authUserId)
     .limit(1);
 
   if (personError || !personRows || personRows.length === 0) return null;
@@ -68,6 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [needsProfileCompletion, setNeedsProfileCompletionState] = useState(
+    () => sessionStorage.getItem(ONBOARDING_KEY) === "1"
+  );
+
+  const setNeedsProfileCompletion = (value: boolean) => {
+    if (value) sessionStorage.setItem(ONBOARDING_KEY, "1");
+    else sessionStorage.removeItem(ONBOARDING_KEY);
+    setNeedsProfileCompletionState(value);
+  };
 
   const refreshPerson = async () => {
     const p = await loadCurrentPerson();
@@ -97,7 +128,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ session, person, loading, refreshPerson }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        person,
+        loading,
+        refreshPerson,
+        needsProfileCompletion,
+        setNeedsProfileCompletion,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
