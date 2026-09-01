@@ -185,7 +185,35 @@ competition/call-time cards the way the artboard's Regional Classic
 example does — there's no CompetitionOverview screen yet to link to
 (Task 22+).
 
+### 23. Bulletin/Media/Essentials tabs and composers are placeholders until Tasks 17–19
+**Found in:** Task 15.
+Every destination's Bulletin/Media/Essentials sub-nav tab, and the three
+"Instructor tools" buttons (Post to Bulletin, Add to Essentials, Upload
+Media), route to a real path today but land on a `<Placeholder>` — the
+composer screens (`BulletinComposer.dc.html`, `EssentialsComposer.dc.html`,
+`MediaUpload.dc.html`) and the feed/library/list screens themselves aren't
+built until Tasks 17, 18 and 19 respectively. The Home preview sections for
+each (most recent post, media gallery, essentials list) already query the
+real tables live and render correctly — they're just honestly empty right
+now, same shape as Deficiency #22 on the unified Home.
+
 ## Low priority / cosmetic
+
+### 24. Comp Team Home has no "Level" in its subtitle
+**Found in:** Task 15.
+`CompHome.dc.html`'s header shows "Group comp team · Level 2 · 9
+dancers," but `comp_team` has no `level` column at all (only `team`
+does) — the artboard's "Level 2" has nothing real behind it. Built the
+honest subset instead: `{comp_team_type} · {cast count} dancers`.
+
+### 25. TeamHome's roster preview has no "Needs a spot" state
+**Found in:** Task 15.
+`TeamHome.dc.html` shows one roster row with a "Needs a spot" pill —
+there's no real signal for this in `team_member` (no status/pending
+column on membership itself; a person's own `status` already gates
+whether they're confirmed at all before they'd ever appear on a roster).
+Every roster row renders the same way for now. Revisit if a real
+"unplaced dancer" concept is ever added.
 
 ### 8. `TeamsAndDances`'s role chip has no Director case
 **Found in:** Task 9.

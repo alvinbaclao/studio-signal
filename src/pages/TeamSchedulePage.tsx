@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { ScheduleView, type ScheduleEvent } from "../components/ScheduleView";
+import { DestinationHeader } from "../components/DestinationHeader";
+import { DestinationSubNav } from "../components/DestinationSubNav";
 
 // A destination's own Schedule tab filters strictly to that destination's
-// team_id — never a merged feed of every Team's classes. There's no full
-// Team destination shell yet (Task 15 builds Home/Bulletin/Media/
-// Essentials), so this stands alone for now, same as TeamRosterManager did
-// in Task 9. See BUILD_PLAN.md Task 11.
+// team_id — never a merged feed of every Team's classes. Shares the same
+// DestinationHeader/DestinationSubNav shell as TeamHome (Task 15). See
+// BUILD_PLAN.md Task 11.
 export function TeamSchedulePage() {
   const { id: teamId } = useParams<{ id: string }>();
   const { person } = useAuth();
@@ -56,17 +57,10 @@ export function TeamSchedulePage() {
   if (!person || !studio || !team) return null;
 
   return (
-    <div style={{ padding: "18px 34px 30px", maxWidth: 480 }}>
-      <Link to="/teams" style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-3)" }}>
-        ← Teams &amp; Competitions
-      </Link>
-      <div style={{ marginTop: 8 }}>
-        <h2 style={{ fontSize: 20 }}>{team.name}</h2>
-        <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
-          {team.level ? `${team.level} · ` : ""}Schedule
-        </div>
-      </div>
-      <div style={{ marginTop: 16 }}>
+    <div>
+      <DestinationHeader name={team.name} subtitle={team.level ?? "Team"} />
+      <DestinationSubNav base={`/team/${teamId}`} />
+      <div style={{ padding: "20px 20px 30px", maxWidth: 480 }}>
         <ScheduleView
           timeZone={studio.timezone}
           fetchEvents={fetchEvents}

@@ -3,11 +3,15 @@ import { supabase } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { ScheduleView, type ScheduleEvent } from "../components/ScheduleView";
+import { DestinationHeader } from "../components/DestinationHeader";
+import { DestinationSubNav } from "../components/DestinationSubNav";
 
 // Scoped to studio_wide = true only — picture day, the recital, closures.
 // Never a merged feed of every Team's own classes; those stay on each
-// Team's own Schedule tab. See BUILD_PLAN.md Task 11's explicit Verify
-// step: confirm this never shows an ordinary Team class.
+// Team's own Schedule tab. Shares the same DestinationHeader/
+// DestinationSubNav shell as StudioHome (Task 15). See BUILD_PLAN.md
+// Task 11's explicit Verify step: confirm this never shows an ordinary
+// Team class.
 export function StudioSchedulePage() {
   const { person } = useAuth();
   const studio = useStudio();
@@ -32,12 +36,10 @@ export function StudioSchedulePage() {
   if (!person || !studio) return null;
 
   return (
-    <div style={{ padding: "18px 34px 30px", maxWidth: 480 }}>
-      <div>
-        <h2 style={{ fontSize: 20 }}>Studio</h2>
-        <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>{studio.name} · Schedule</div>
-      </div>
-      <div style={{ marginTop: 16 }}>
+    <div>
+      <DestinationHeader name="Studio" subtitle={`${studio.name} · everyone`} />
+      <DestinationSubNav base="/studio" />
+      <div style={{ padding: "20px 20px 30px", maxWidth: 480 }}>
         <ScheduleView
           timeZone={studio.timezone}
           fetchEvents={fetchEvents}
