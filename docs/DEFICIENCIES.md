@@ -140,6 +140,36 @@ is interactive but doesn't affect the saved event or booking request in
 any way. Revisit alongside #6 if real notification delivery is ever
 added.
 
+### 20. No entry point yet for "Request a move" on an existing event
+**Found in:** Task 13.
+BUILD_PLAN's move path ("an instructor's date/time/space edits are
+replaced with Request a move, opens Add Event pre-filled with
+moves_event_id") needs a screen that shows an existing event and lets an
+instructor act on it — no such screen (or artboard) exists anywhere in
+the build yet, so there's nothing to click "Request a move" from. The
+data-layer side is real and verified live: `AddEvent` accepts
+`?movesEvent=<id>` and sets it on the resulting `booking_request`, and
+`RequestReviewModal`'s approval path updates that same event row instead
+of inserting a new one (confirmed via a direct DB check: same event id,
+same `created_at`, only the changed fields updated). Revisit once an
+event-detail/edit screen exists to link from.
+
+### 21. "Propose a different time or room" is decline-with-a-note, not a real counter-proposal
+**Found in:** Task 13.
+`ProposeMoveSheet.dc.html`'s actual content (as opposed to BUILD_PLAN's
+one-line gloss, which describes a different interaction entirely — see
+above) shows the Director picking an open alternate slot and sending Jamie
+"a proposal to accept or counter — it doesn't book anything until she
+confirms." There's no schema support for this at all: `booking_status`
+has no "countered"/"proposed" value, and `booking_request` has no columns
+to store a counter-proposed time or space. Built the honest subset
+instead: Decline carries an optional free-text note (the real
+`decline_reason` column), pre-labelled as a place to suggest a better
+time or room. This is real and persisted (the requester can already read
+their own declined request via existing RLS), just not the formal
+accept/counter loop the mockup depicts — that would need real schema
+support to build honestly.
+
 ## Low priority / cosmetic
 
 ### 8. `TeamsAndDances`'s role chip has no Director case

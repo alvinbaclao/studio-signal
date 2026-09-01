@@ -4,6 +4,7 @@ import { supabase, callApp } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { zonedDateTimeToUTC, zonedDateKey } from "../lib/format";
+import { friendlyPostgrestError } from "../lib/errors";
 import { Sheet } from "../components/Sheet";
 import { PrimaryButton } from "../components/PrimaryButton";
 import type { Database } from "../lib/database.types";
@@ -51,6 +52,12 @@ export function AddEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDirector = hasRole(person, "director");
+  // Set when this screen was opened to request moving an existing event
+  // (BUILD_PLAN Task 13's move path) — no UI links here yet (no event-detail
+  // screen exists to click "Request a move" from, see DEFICIENCIES.md), but
+  // the data-layer support is real: approving a move updates this event
+  // instead of inserting a new one.
+  const movesEventId = searchParams.get("movesEvent");
 
   const [destOptions, setDestOptions] = useState<{ teams: DestOption[]; compTeams: DestOption[]; studio: DestOption } | null>(null);
   const [destination, setDestination] = useState<DestOption | null>(null);
@@ -295,12 +302,13 @@ export function AddEvent() {
           preferred_space_id: spaceId,
           repeats: repeatsWeekly ? "weekly" : "once",
           note,
+          moves_event_id: movesEventId,
         });
         if (error) throw error;
       }
       navigate(-1);
     } catch (err) {
-      setErrorMsg(friendlyError(err));
+      setErrorMsg(friendlyPostgrestError(err));
     } finally {
       setSubmitting(false);
     }
@@ -564,14 +572,6 @@ export function AddEvent() {
       </Sheet>
     </div>
   );
-}
-
-function friendlyError(err: unknown): string {
-  const code = (err as { code?: string })?.code;
-  if (code === "23P01") return "That space is already booked for part of this time — pick a different time or location.";
-  if (code === "23514") return "That event type and destination combination isn't allowed.";
-  if (code === "42501") return "You don't have permission to do that here.";
-  return "Something went wrong saving this — try again.";
 }
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {

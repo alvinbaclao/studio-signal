@@ -57,6 +57,21 @@ export function dayNumberInZone(iso: string, timeZone: string): number {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone, day: "numeric" }).format(new Date(iso)));
 }
 
+// Minutes since midnight *in timeZone* — the vertical axis of Studio
+// Calendar Review's day grid (Task 13) is built from this, never from
+// getUTCHours()/getUTCMinutes() directly, since starts_at/ends_at are UTC
+// and the studio's timezone is virtually never UTC.
+export function zonedMinutesOfDay(iso: string, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(new Date(iso));
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return Number(map.hour) * 60 + Number(map.minute);
+}
+
 // The event's Y-M-D in the studio's timezone, as a sortable "YYYY-MM-DD"
 // grouping key — this is what "which day does this event fall on" actually
 // means once the device and studio timezones can differ.
@@ -164,4 +179,14 @@ export function monthRangeInZone(reference: Date, timeZone: string): { start: Da
 
 export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 86400000);
+}
+
+// The UTC instants bounding a single "YYYY-MM-DD" calendar day *in
+// timeZone* — Studio Calendar Review's day-by-space grid (Task 13) queries
+// this exact range.
+export function dayRangeInZone(dateYMD: string, timeZone: string): { start: Date; end: Date } {
+  const [year, month, day] = dateYMD.split("-").map(Number);
+  const start = zonedMidnightUTC(year, month, day, timeZone);
+  const end = new Date(start.getTime() + 86400000);
+  return { start, end };
 }

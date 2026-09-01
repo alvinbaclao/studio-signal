@@ -30,6 +30,7 @@ import { TeamSchedulePage } from "./pages/TeamSchedulePage";
 import { CompTeamSchedulePage } from "./pages/CompTeamSchedulePage";
 import { StudioSchedulePage } from "./pages/StudioSchedulePage";
 import { AddEvent } from "./pages/AddEvent";
+import { StudioCalendarReview } from "./pages/StudioCalendarReview";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -86,7 +87,7 @@ function AppRoutes() {
       <Route path="/roster" element={<Roster />} />
       <Route path="/confirm-queue" element={<ConfirmQueue />} />
       <Route path="/person/:id" element={<PersonDetail />} />
-      <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
+      <Route path="/studio-calendar" element={<StudioCalendarReview />} />
       <Route path="/invite-someone" element={<InviteSomeone />} />
       <Route path="/team/:id/roster" element={<TeamRosterManager />} />
       <Route path="/team/:id/schedule" element={<TeamSchedulePage />} />

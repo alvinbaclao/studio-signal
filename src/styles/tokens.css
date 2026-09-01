@@ -40,6 +40,9 @@
   --wait-tint: #fdf0d2;
   --busy: #a33a2e;
   --busy-tint: #f9e5e1;
+  --busy-border: #efcdc6; /* soft outline for a confirmed block that has a
+    conflicting pending request, e.g. Studio Calendar Review (Task 13) — the
+    --busy-tint-to-border relationship --signal-border already has for amber. */
 
   /* Type ramp — set these via the font-family utility classes below, not by
      hand, so the Bricolage/Instrument split stays consistent everywhere. */
