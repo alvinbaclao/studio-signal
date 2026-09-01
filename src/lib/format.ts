@@ -107,6 +107,37 @@ function zonedMidnightUTC(year: number, month: number, day: number, timeZone: st
   return new Date(guess.getTime() - driftMs);
 }
 
+// The inverse of the display helpers above: a "YYYY-MM-DD" date plus
+// "HH:MM" (24h) wall-clock time, both as entered in the studio's timezone,
+// converted to the UTC instant to store. Same guess-and-correct approach as
+// zonedMidnightUTC, generalized to an arbitrary time of day.
+export function zonedDateTimeToUTC(dateYMD: string, timeHM: string, timeZone: string): Date {
+  const [year, month, day] = dateYMD.split("-").map(Number);
+  const [hour, minute] = timeHM.split(":").map(Number);
+  const guess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(guess);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const renderedAsUTC = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second)
+  );
+  const driftMs = renderedAsUTC - guess.getTime();
+  return new Date(guess.getTime() - driftMs);
+}
+
 // Monday-start week (matching every Schedule artboard's day strip) — the
 // UTC instant for the start of "today"'s week in timeZone, and the instant
 // one week later (exclusive upper bound for a starts_at range query).

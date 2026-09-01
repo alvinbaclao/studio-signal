@@ -42,7 +42,7 @@ export function StudioSchedulePage() {
           timeZone={studio.timezone}
           fetchEvents={fetchEvents}
           emptyText="Nothing scheduled this week."
-          addEvent={isDirector ? { to: "/add-event", label: "Add studio-wide event" } : undefined}
+          addEvent={isDirector ? { to: "/add-event?studioWide=1", label: "Add studio-wide event" } : undefined}
         />
       </div>
     </div>

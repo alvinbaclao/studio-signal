@@ -92,6 +92,54 @@ it was checked at the database layer instead (correct status transitions
 confirmed directly). Re-verify through the actual UI once a parent has
 somewhere to see their own family's status.
 
+### 14. "Call time" isn't offered in Add Event's type picker
+**Found in:** Task 12.
+`EventTypePicker.dc.html` lists "Call time — for a competition or
+performance entry" alongside Class/Rehearsal, Studio time request and
+Dancer meeting. A live probe of `event_owner_matches_type` confirmed
+`call_time` events require `competition_entry_id` to be set, not just
+`comp_team_id` — and Task 12's own `Touches` list doesn't include
+`competition`/`competition_entry` at all. Rather than half-wire a picker
+with nothing real to attach to, "Call time" was left out entirely, same
+choice as every other schema-shaped gap in this project. Revisit once
+competition/competition_entry management exists (Task 22+).
+
+### 15. No `studio_space` rows exist yet
+**Found in:** Task 12.
+Same shape as Deficiency #3 (`dance_style`): `studio_space` is empty for
+the real studio, so Add Event's Location picker correctly shows "Your
+studio hasn't set up any spaces yet" and every event/booking request can
+be saved with no location rather than being forced through a fake picker.
+Studio Spaces management is Task 26 (Studio Settings) — not built yet.
+The advisory Available/Pending/Busy picker itself (`--ok`/`--wait`/
+`--busy`) was verified live with temporary test spaces and works
+correctly; it just has nothing to show until Task 26 seeds real ones.
+
+### 16. Recurring events aren't supported on the Director's direct-create path
+**Found in:** Task 12.
+`AddEvent.dc.html` shows a "Repeats weekly … through Nov 30" toggle, but
+the `event` table has no `repeats` column and no end-date column at
+all — only `booking_request` has a `repeats` enum (`once`/`weekly`/
+`biweekly`), with no end-date column either. A Director creating a direct
+event can therefore only create one occurrence at a time; the toggle is
+wired up only on the instructor's `booking_request` path, where the
+column genuinely exists (an approving Director decides in Task 13 how to
+actually fulfill a "weekly" request). Building client-side multi-row
+generation for the Director path was deliberately avoided — there's no
+schema-backed way to later reference, edit or cancel "the whole series"
+as a unit, which is exactly the kind of half-real feature this project
+avoids. Worth a real design decision (a `repeats`/`series_id` column?) if
+recurring Director-created events are needed later.
+
+### 17. Add Event's "Notify" toggle is cosmetic only
+**Found in:** Task 12.
+`AddEvent.dc.html`'s "Push to {team} families" toggle has no backing —
+there is no notification/push table or send mechanism anywhere in this
+schema, same gap as Deficiency #6 (invite emails). The toggle renders and
+is interactive but doesn't affect the saved event or booking request in
+any way. Revisit alongside #6 if real notification delivery is ever
+added.
+
 ## Low priority / cosmetic
 
 ### 8. `TeamsAndDances`'s role chip has no Director case
@@ -158,3 +206,32 @@ moving the hook above the early return, alongside the other `useMemo` in
 the same component. Caught live before it shipped, but worth remembering
 as a recurring mistake pattern — check hook placement relative to early
 returns on every new page component, not just once per file.
+
+### 18. `teams_i_can_see()`/`comp_teams_i_can_see()` are empty for a Director
+**Found and fixed in:** Task 12.
+Assumed (by analogy with `TeamsAndDances`, which uses these RPCs without
+special-casing Director) that they'd return every team/comp_team in the
+studio for a Director. Live-probed and confirmed otherwise: both RPCs are
+scoped to "teams/comp_teams this person is personally a member of," which
+is empty for a Director (they're not a `team_member`/`comp_team_cast`
+row anywhere) — Director visibility comes from plain table RLS instead,
+which already grants full access. `AddEvent`'s destination loader now
+branches on `isDirector`: a Director queries `team`/`comp_team` directly;
+everyone else still goes through the RPCs. Worth remembering for any
+future screen that lists teams/comp_teams and must work correctly for a
+Director too — `TeamsAndDances` itself has never been exercised as a
+Director (it's not reachable from Director nav), so this had gone
+unnoticed until now.
+
+### 19. `TeamSchedulePage`/`CompTeamSchedulePage` hid "+" from the Director
+**Found and fixed in:** Task 12.
+Both pages gated their Task-11-built `addEvent` prop on `teaches`/
+`choreographs` alone (a `team_member`/`comp_team_cast` lookup for the
+current person), never OR'd with `isDirector` — unlike
+`StudioSchedulePage`, which correctly used `isDirector` alone. A Director
+who doesn't personally teach a Team could reach that Team's Schedule tab
+but never see the "+" button, even though "Director always writes
+directly" everywhere else in the app. Fixed by OR'ing both pages' gate
+with `isDirector`, matching `StudioSchedulePage`'s existing pattern. Predates
+Task 12 (introduced in Task 11, before Add Event existed to make the gap
+visible) — caught during this task's own live verification.

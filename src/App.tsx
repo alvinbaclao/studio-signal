@@ -29,6 +29,7 @@ import { GlobalSchedule } from "./pages/GlobalSchedule";
 import { TeamSchedulePage } from "./pages/TeamSchedulePage";
 import { CompTeamSchedulePage } from "./pages/CompTeamSchedulePage";
 import { StudioSchedulePage } from "./pages/StudioSchedulePage";
+import { AddEvent } from "./pages/AddEvent";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -100,7 +101,7 @@ function AppRoutes() {
       <Route path="/studio/schedule" element={<StudioSchedulePage />} />
       <Route path="/studio" element={<Placeholder title="Studio" />} />
       <Route path="/teams-and-dances" element={<TeamsAndDances />} />
-      <Route path="/add-event" element={<Placeholder title="Add event" />} />
+      <Route path="/add-event" element={<AddEvent />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

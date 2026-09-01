@@ -37,7 +37,12 @@ export function GlobalSchedule() {
         Your own schedule — everything you belong to, in one place.
       </p>
       <div style={{ marginTop: 16 }}>
-        <ScheduleView timeZone={studio.timezone} fetchEvents={fetchEvents} emptyText="Nothing scheduled this week." />
+        <ScheduleView
+          timeZone={studio.timezone}
+          fetchEvents={fetchEvents}
+          emptyText="Nothing scheduled this week."
+          addEvent={{ to: "/add-event", label: "Add event" }}
+        />
       </div>
     </div>
   );

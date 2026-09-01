@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../lib/AuthProvider";
+import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { ScheduleView, type ScheduleEvent } from "../components/ScheduleView";
 
@@ -11,6 +11,7 @@ export function CompTeamSchedulePage() {
   const { id: compTeamId } = useParams<{ id: string }>();
   const { person } = useAuth();
   const studio = useStudio();
+  const isDirector = hasRole(person, "director");
   const [compTeam, setCompTeam] = useState<{ name: string; comp_team_type: string } | null>(null);
   const [choreographs, setChoreographs] = useState(false);
 
@@ -65,7 +66,9 @@ export function CompTeamSchedulePage() {
           timeZone={studio.timezone}
           fetchEvents={fetchEvents}
           emptyText="Nothing scheduled this week."
-          addEvent={choreographs ? { to: "/add-event", label: "Add rehearsal" } : undefined}
+          addEvent={
+            choreographs || isDirector ? { to: `/add-event?compTeam=${compTeamId}`, label: "Add rehearsal" } : undefined
+          }
         />
       </div>
     </div>
