@@ -72,6 +72,25 @@ export function ProfileIcon(props: IconProps) {
   );
 }
 
+// Director-only rail item, path ported from design-reference/DirectorRoster.dc.html's
+// rail "Roster" glyph.
+export function RosterIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <circle cx="9" cy="8" r="3.4" />
+      <path d="M2 20a7 7 0 0114 0M17 11a3 3 0 100-6M22 20a5.5 5.5 0 00-4-5.3" />
+    </svg>
+  );
+}
+
 // Director-only rail item, path ported from design-reference/DirectorHome.dc.html
 // and JoinCodeManagement.dc.html's rail "Settings" glyph.
 export function SettingsIcon(props: IconProps) {

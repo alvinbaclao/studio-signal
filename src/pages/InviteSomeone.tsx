@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase, callApp } from "../lib/supabase";
-import { useAuth } from "../lib/AuthProvider";
+import { useAuth, hasRole } from "../lib/AuthProvider";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { SecondaryButton } from "../components/SecondaryButton";
 import { formatShortDate } from "../lib/format";
+import { Placeholder } from "./Placeholder";
 import type { Database } from "../lib/database.types";
 
 type InviteRole = "instructor" | "parent" | "dancer";
@@ -93,6 +94,10 @@ export function InviteSomeone() {
     loadPendingInvites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person]);
+
+  if (!hasRole(person, "director")) {
+    return <Placeholder title="Invite someone" />;
+  }
 
   const resetDuplicateState = () => {
     setDuplicate(null);

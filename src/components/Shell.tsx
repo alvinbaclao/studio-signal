@@ -6,6 +6,7 @@ import { useAuth, hasRole } from "../lib/AuthProvider";
 import { Avatar } from "./Avatar";
 import {
   HomeIcon,
+  RosterIcon,
   ScheduleIcon,
   MessagingIcon,
   ProfileIcon,
@@ -17,6 +18,19 @@ const primaryNavItems = [
   { to: "/schedule", label: "Schedule", Icon: ScheduleIcon, end: false },
   { to: "/messages", label: "Messaging", Icon: MessagingIcon, end: false },
   { to: "/profile", label: "Profile", Icon: ProfileIcon, end: false },
+] as const;
+
+// Every reference artboard that shows the Director's full rail
+// (DirectorHome, DirectorConfirmQueue, DirectorRoster, JoinCodeManagement,
+// PersonDetail) agrees on this order: Home, Roster, Schedule, Messages,
+// Settings — Roster inserted right after Home, ahead of the shared items.
+// Competitions joins this list once Task 8 builds that destination.
+const directorRailItems = [
+  { to: "/", label: "Home", Icon: HomeIcon, end: true },
+  { to: "/roster", label: "Roster", Icon: RosterIcon, end: false },
+  { to: "/schedule", label: "Schedule", Icon: ScheduleIcon, end: false },
+  { to: "/messages", label: "Messaging", Icon: MessagingIcon, end: false },
+  { to: "/settings", label: "Settings", Icon: SettingsIcon, end: false },
 ] as const;
 
 function navClass(base: string) {
@@ -60,19 +74,12 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="shell-rail-name">{studioName ?? "Studio"}</span>
         </div>
 
-        {primaryNavItems.map(({ to, label, Icon, end }) => (
+        {(isDirector ? directorRailItems : primaryNavItems).map(({ to, label, Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={navClass("shell-railitem")}>
             <Icon className="shell-icon" />
             {label}
           </NavLink>
         ))}
-
-        {isDirector && (
-          <NavLink to="/settings" className={navClass("shell-railitem")}>
-            <SettingsIcon className="shell-icon" />
-            Settings
-          </NavLink>
-        )}
 
         <div className="shell-rail-spacer" />
 

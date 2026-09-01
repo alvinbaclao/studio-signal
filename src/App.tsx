@@ -19,6 +19,7 @@ import { CompleteProfile } from "./pages/CompleteProfile";
 import { ConfirmQueue } from "./pages/ConfirmQueue";
 import { PersonDetail } from "./pages/PersonDetail";
 import { InviteSomeone } from "./pages/InviteSomeone";
+import { Roster } from "./pages/Roster";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -72,7 +73,7 @@ function AppRoutes() {
       <Route path="/profile" element={<Placeholder title="Profile" />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/teams" element={<Placeholder title="Teams & Competitions" />} />
-      <Route path="/roster" element={<Placeholder title="Roster" />} />
+      <Route path="/roster" element={<Roster />} />
       <Route path="/confirm-queue" element={<ConfirmQueue />} />
       <Route path="/person/:id" element={<PersonDetail />} />
       <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />

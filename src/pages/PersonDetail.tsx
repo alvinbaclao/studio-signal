@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useAuth, type Role } from "../lib/AuthProvider";
+import { useAuth, hasRole, type Role } from "../lib/AuthProvider";
 import { Avatar } from "../components/Avatar";
 import { Chip } from "../components/Chip";
 import { ageFromDob, formatShortDate } from "../lib/format";
@@ -185,7 +185,7 @@ export function PersonDetail() {
           <Link to="/messages" style={ghostBtnStyle}>
             Message
           </Link>
-          {currentPerson?.id !== person.id && (
+          {hasRole(currentPerson, "director") && currentPerson?.id !== person.id && (
             <button type="button" onClick={toggleActive} disabled={busy} style={dangerBtnStyle}>
               {person.is_active ? "Deactivate" : "Reactivate"}
             </button>
