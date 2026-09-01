@@ -21,6 +21,8 @@ import { PersonDetail } from "./pages/PersonDetail";
 import { InviteSomeone } from "./pages/InviteSomeone";
 import { Roster } from "./pages/Roster";
 import { TeamsIndex } from "./pages/TeamsIndex";
+import { TeamRosterManager } from "./pages/TeamRosterManager";
+import { TeamsAndDances } from "./pages/TeamsAndDances";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -79,12 +81,15 @@ function AppRoutes() {
       <Route path="/person/:id" element={<PersonDetail />} />
       <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
       <Route path="/invite-someone" element={<InviteSomeone />} />
-      <Route path="/team/:id/roster" element={<Placeholder title="Team roster" />} />
+      <Route path="/team/:id/roster" element={<TeamRosterManager />} />
+      <Route path="/team/:id" element={<Placeholder title="Team" />} />
       <Route path="/comp-teams/new" element={<Placeholder title="New Comp Team" />} />
       <Route path="/comp-team/:id" element={<Placeholder title="Comp Team" />} />
       <Route path="/competitions/new" element={<Placeholder title="New Competition" />} />
       <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
       <Route path="/competition/:id/manage" element={<Placeholder title="Manage competition" />} />
+      <Route path="/studio" element={<Placeholder title="Studio" />} />
+      <Route path="/teams-and-dances" element={<TeamsAndDances />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
