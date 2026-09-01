@@ -13,6 +13,7 @@ import { NotLinked } from "./pages/NotLinked";
 import { Placeholder } from "./pages/Placeholder";
 import { InviteRedeem } from "./pages/InviteRedeem";
 import { JoinRedeem } from "./pages/JoinRedeem";
+import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { session, person, loading } = useAuth();
@@ -40,18 +41,18 @@ function Gate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function Shell() {
-  // TODO (Prompt 2): the real responsive shell — bottom nav at 390px,
-  // dark left rail at 1440px for a Director, per PROJECT_KNOWLEDGE.md's
-  // two-tier nav (Home / Schedule / Messages / Profile globally; each
-  // destination's own Home / Schedule / Bulletin / Media / Essentials
-  // sub-nav). This is a placeholder route table only.
+function AppRoutes() {
+  // Real destinations (Team/Comp Team/Studio, each with its own
+  // Home/Schedule/Bulletin/Media/Essentials sub-nav) land in Task 8/9/15 —
+  // this is still a placeholder route table for the four global tabs plus
+  // the Director's fifth rail item.
   return (
     <Routes>
       <Route path="/" element={<Placeholder title="Home" />} />
       <Route path="/schedule" element={<Placeholder title="Schedule" />} />
-      <Route path="/messages" element={<Placeholder title="Messages" />} />
+      <Route path="/messages" element={<Placeholder title="Messaging" />} />
       <Route path="/profile" element={<Placeholder title="Profile" />} />
+      <Route path="/director" element={<Placeholder title="Director console" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -62,7 +63,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Gate>
-          <Shell />
+          <Shell>
+            <AppRoutes />
+          </Shell>
         </Gate>
       </AuthProvider>
     </BrowserRouter>
