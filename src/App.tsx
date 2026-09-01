@@ -16,6 +16,8 @@ import { JoinRedeem } from "./pages/JoinRedeem";
 import { DirectorHome } from "./pages/DirectorHome";
 import { Settings } from "./pages/Settings";
 import { CompleteProfile } from "./pages/CompleteProfile";
+import { ConfirmQueue } from "./pages/ConfirmQueue";
+import { PersonDetail } from "./pages/PersonDetail";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -70,7 +72,8 @@ function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/teams" element={<Placeholder title="Teams & Competitions" />} />
       <Route path="/roster" element={<Placeholder title="Roster" />} />
-      <Route path="/confirm-queue" element={<Placeholder title="Confirm queue" />} />
+      <Route path="/confirm-queue" element={<ConfirmQueue />} />
+      <Route path="/person/:id" element={<PersonDetail />} />
       <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
       <Route path="/competitions" element={<Placeholder title="Competitions" />} />
       <Route path="/invite-someone" element={<Placeholder title="Invite someone" />} />

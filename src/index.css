@@ -18,6 +18,17 @@ button {
   cursor: pointer;
 }
 
+/* Every reference artboard resets links this way (e.g. HomeUnified.dc.html:
+   "a{color:var(--signal-deep);text-decoration:none;}"). Default to
+   inheriting the surrounding text colour rather than --signal-deep, since
+   most links here are plain row titles (person names, team names), not
+   "see all"-style action links — those set --signal-deep explicitly where
+   they're used. */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 input,
 textarea {
   font-family: var(--font-body);
