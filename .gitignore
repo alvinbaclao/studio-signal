@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Supabase CLI's local project-link cache (npx supabase login / gen types) —
+# machine-specific, not part of the app.
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
