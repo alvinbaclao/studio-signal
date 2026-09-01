@@ -20,6 +20,7 @@ import { ConfirmQueue } from "./pages/ConfirmQueue";
 import { PersonDetail } from "./pages/PersonDetail";
 import { InviteSomeone } from "./pages/InviteSomeone";
 import { Roster } from "./pages/Roster";
+import { TeamsIndex } from "./pages/TeamsIndex";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -72,13 +73,18 @@ function AppRoutes() {
       <Route path="/messages" element={<Placeholder title="Messaging" />} />
       <Route path="/profile" element={<Placeholder title="Profile" />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/teams" element={<Placeholder title="Teams & Competitions" />} />
+      <Route path="/teams" element={<TeamsIndex />} />
       <Route path="/roster" element={<Roster />} />
       <Route path="/confirm-queue" element={<ConfirmQueue />} />
       <Route path="/person/:id" element={<PersonDetail />} />
       <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
-      <Route path="/competitions" element={<Placeholder title="Competitions" />} />
       <Route path="/invite-someone" element={<InviteSomeone />} />
+      <Route path="/team/:id/roster" element={<Placeholder title="Team roster" />} />
+      <Route path="/comp-teams/new" element={<Placeholder title="New Comp Team" />} />
+      <Route path="/comp-team/:id" element={<Placeholder title="Comp Team" />} />
+      <Route path="/competitions/new" element={<Placeholder title="New Competition" />} />
+      <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
+      <Route path="/competition/:id/manage" element={<Placeholder title="Manage competition" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -91,6 +91,25 @@ export function RosterIcon(props: IconProps) {
   );
 }
 
+// Director-only rail item, path ported from design-reference/DirectorTeamsIndex.dc.html's
+// rail "Competitions" glyph (that artboard's own rail item name for the
+// Teams & Competitions index).
+export function CompetitionsIcon(props: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M8 21h8M12 17v4M6 3h12v6a6 6 0 01-12 0z" />
+    </svg>
+  );
+}
+
 // Director-only rail item, path ported from design-reference/DirectorHome.dc.html
 // and JoinCodeManagement.dc.html's rail "Settings" glyph.
 export function SettingsIcon(props: IconProps) {

@@ -180,7 +180,7 @@ export function DirectorHome() {
                   ? "1 published entry has no call time"
                   : `${data.missingCallTimeCount} published entries have no call time`,
               cta: "Set times",
-              to: "/competitions",
+              to: "/teams",
             }
           : null,
       ].filter((c): c is DecisionCard => c !== null)

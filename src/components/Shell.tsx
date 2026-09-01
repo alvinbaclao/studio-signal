@@ -8,6 +8,7 @@ import {
   HomeIcon,
   RosterIcon,
   ScheduleIcon,
+  CompetitionsIcon,
   MessagingIcon,
   ProfileIcon,
   SettingsIcon,
@@ -21,14 +22,15 @@ const primaryNavItems = [
 ] as const;
 
 // Every reference artboard that shows the Director's full rail
-// (DirectorHome, DirectorConfirmQueue, DirectorRoster, JoinCodeManagement,
-// PersonDetail) agrees on this order: Home, Roster, Schedule, Messages,
-// Settings — Roster inserted right after Home, ahead of the shared items.
-// Competitions joins this list once Task 8 builds that destination.
+// (DirectorHome, DirectorConfirmQueue, DirectorRoster, DirectorTeamsIndex,
+// JoinCodeManagement, PersonDetail) agrees on this exact order: Home,
+// Roster, Schedule, Competitions, Messages, Settings. "Competitions" is
+// that rail's own label for the Teams & Competitions index (Task 8).
 const directorRailItems = [
   { to: "/", label: "Home", Icon: HomeIcon, end: true },
   { to: "/roster", label: "Roster", Icon: RosterIcon, end: false },
   { to: "/schedule", label: "Schedule", Icon: ScheduleIcon, end: false },
+  { to: "/teams", label: "Competitions", Icon: CompetitionsIcon, end: false },
   { to: "/messages", label: "Messaging", Icon: MessagingIcon, end: false },
   { to: "/settings", label: "Settings", Icon: SettingsIcon, end: false },
 ] as const;
