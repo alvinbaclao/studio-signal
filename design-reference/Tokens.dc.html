@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --ok:#2c7449; --ok-tint:#e3f1e7; --wait:#8a5c00; --wait-tint:#fdf0d2; --busy:#a33a2e; --busy-tint:#f9e5e1;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); font-family:"Instrument Sans", ui-sans-serif, sans-serif; color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque", ui-sans-serif, sans-serif; margin:0; color:var(--ink); font-weight:600;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:600;}
+  .screen{width:1440px; min-height:1560px; padding:44px 56px 56px; background:var(--paper);}
+  .swatch{border-radius:14px; border:1px solid var(--hairline); overflow:hidden; background:var(--surface);}
+  .swatch .chipbox{height:78px; display:flex; align-items:flex-end; padding:10px 12px;}
+  .swatch .meta{padding:11px 13px 13px;}
+  .swatch .nm{font-size:12.5px; font-weight:700; letter-spacing:.01em;}
+  .swatch .hx{font-size:11.5px; color:var(--ink-3); font-variant-numeric:tabular-nums; margin-top:2px;}
+  .swatch .use{font-size:11.5px; color:var(--ink-2); margin-top:7px; line-height:1.45;}
+  .grid6{display:grid; grid-template-columns:repeat(6,1fr); gap:14px;}
+  .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .card{background:var(--surface); border:1px solid var(--hairline); border-radius:18px; padding:20px 22px;}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .chip{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:12px;font-weight:600;}
+  .chip.sel{background:var(--ink);color:var(--paper);}
+  .btnp{padding:12px 22px;border-radius:12px;background:var(--signal);color:var(--signal-ink);font-weight:700;font-size:14px;display:inline-flex;align-items:center;}
+  .btns{padding:12px 22px;border-radius:12px;background:var(--sand);color:var(--ink);font-weight:600;font-size:14px;display:inline-flex;align-items:center;}
+  .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--signal-deep);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .timelead{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-variant-numeric:tabular-nums;font-size:26px;width:84px;flex-shrink:0;}
+  .hrow{display:flex;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--hairline);}
+  table.ratios{border-collapse:collapse;width:100%;font-size:12.5px;}
+  table.ratios th{text-align:left;font-family:"Bricolage Grotesque",sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:0 12px 9px 0;font-weight:600;}
+  table.ratios td{padding:8px 12px 8px 0;border-top:1px solid var(--hairline);color:var(--ink-2);vertical-align:top;}
+  table.ratios td b{color:var(--ink);}
+  .num{font-variant-numeric:tabular-nums;color:var(--ok);font-weight:700;}
+</style>
+</helmet>
+
+<div class="screen" data-rule-exempt="specimen-sheet">
+
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:10.5px;padding:5px 11px;border-radius:999px;background:var(--band);color:var(--signal);letter-spacing:.02em;">DECIDED &middot; 2026-08-25</span>
+    <span style="font-size:12px;color:var(--ink-3);">Concept C&rsquo;s structure and rationed signal colour, rebuilt on Concept B&rsquo;s warm base</span>
+  </div>
+
+  <h1 style="font-size:40px;margin-top:16px;letter-spacing:-.02em;">Stage, warmed</h1>
+  <p style="max-width:720px;margin:12px 0 0;font-size:15px;line-height:1.65;color:var(--ink-2);">
+    Hierarchy is carried by contrast and scale. Hue is rationed to one signal colour, so that when something <i>is</i> coloured it means
+    something. Every value below clears WCAG AA against every surface it sits on &mdash; the lowest ratio in the system is 4.86:1.
+  </p>
+
+  <!-- SURFACES -->
+  <div class="eyebrow" style="margin:40px 0 12px;">Surfaces</div>
+  <div class="grid6">
+    <div class="swatch"><div class="chipbox" style="background:#fbf7f1;"></div><div class="meta"><div class="nm">--paper</div><div class="hx">#fbf7f1</div><div class="use">App background</div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#ffffff;"></div><div class="meta"><div class="nm">--surface</div><div class="hx">#ffffff</div><div class="use">Cards, sheets, nav bars</div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#f5eee4;"></div><div class="meta"><div class="nm">--sand</div><div class="hx">#f5eee4</div><div class="use">Inset rows, avatars, chips, quiet buttons</div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#e7dccd;"></div><div class="meta"><div class="nm">--hairline</div><div class="hx">#e7dccd</div><div class="use">Row rules and borders. Decorative &mdash; exempt from 3:1</div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#1c1714;"></div><div class="meta"><div class="nm">--band</div><div class="hx">#1c1714</div><div class="use">The band that holds what needs a person</div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#2a2320;"></div><div class="meta"><div class="nm">--band-card</div><div class="hx">#2a2320</div><div class="use">Raised cards inside the band</div></div></div>
+  </div>
+
+  <!-- INK -->
+  <div class="eyebrow" style="margin:34px 0 12px;">Ink</div>
+  <div class="grid6">
+    <div class="swatch"><div class="chipbox" style="background:#2f2925;"></div><div class="meta"><div class="nm">--ink</div><div class="hx">#2f2925</div><div class="use">Titles, row names, body &middot; <span class="num">12.45&ndash;14.34</span></div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#574e47;"></div><div class="meta"><div class="nm">--ink-2</div><div class="hx">#574e47</div><div class="use">Secondary lines, avatar initials &middot; <span class="num">7.05&ndash;8.12</span></div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#6b615a;"></div><div class="meta"><div class="nm">--ink-3</div><div class="hx">#6b615a</div><div class="use">Eyebrows, 11px meta, category dots &middot; <span class="num">5.24&ndash;6.03</span></div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#f8f4ee;"></div><div class="meta"><div class="nm">--band-ink</div><div class="hx">#f8f4ee</div><div class="use">Text inside the band &middot; <span class="num">14.10&ndash;16.21</span></div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#aaa094;"></div><div class="meta"><div class="nm">--band-ink-2</div><div class="hx">#aaa094</div><div class="use">Muted text inside the band &middot; <span class="num">6.01&ndash;6.91</span></div></div></div>
+    <div class="swatch" style="border-style:dashed;"><div class="chipbox" style="background:repeating-linear-gradient(45deg,#f5eee4,#f5eee4 8px,#fbf7f1 8px,#fbf7f1 16px);"></div><div class="meta"><div class="nm" style="color:var(--busy);">no fourth grey</div><div class="hx">&mdash;</div><div class="use">Concept B&rsquo;s <code>--ink-4</code> is deleted, not darkened. It failed at 2.55:1 and had no job the three above cannot do.</div></div></div>
+  </div>
+
+  <!-- SIGNAL -->
+  <div class="eyebrow" style="margin:34px 0 12px;">Signal &mdash; one colour, three forms that are not interchangeable</div>
+  <div class="grid4">
+    <div class="swatch"><div class="chipbox" style="background:#ffc12b;"></div><div class="meta"><div class="nm">--signal</div><div class="hx">#ffc12b</div><div class="use">On the dark band, or as a fill. Never bare on paper. &middot; <span class="num">9.50&ndash;10.93</span> on band</div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#5f4604;"></div><div class="meta"><div class="nm">--signal-ink</div><div class="hx">#5f4604</div><div class="use">The only text colour permitted on an amber fill &middot; <span class="num">5.46</span></div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#8a5c00;"></div><div class="meta"><div class="nm">--signal-deep</div><div class="hx">#8a5c00</div><div class="use">Amber-as-text and amber-as-dot on light surfaces &middot; <span class="num">5.05&ndash;5.81</span></div></div></div>
+    <div class="swatch"><div class="chipbox" style="background:#fdf0d2;"></div><div class="meta"><div class="nm">--signal-tint</div><div class="hx">#fdf0d2</div><div class="use">Quiet amber ground for pinned rows and chips</div></div></div>
+  </div>
+
+  <div style="display:flex;gap:14px;margin-top:16px;">
+    <div style="flex:1;border-radius:14px;border:1px solid var(--hairline);background:var(--surface);padding:16px 18px;display:flex;gap:14px;align-items:center;">
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--signal);display:flex;align-items:center;justify-content:center;color:var(--signal-ink);font-weight:800;font-size:15px;">Aa</div>
+      <div style="font-size:12.5px;color:var(--ink-2);line-height:1.5;"><b style="color:var(--ink);">Correct.</b> <code>--signal-ink</code> on <code>--signal</code> &mdash; <span class="num">5.46:1</span></div>
+    </div>
+    <div style="flex:1;border-radius:14px;border:1px solid var(--busy);background:var(--busy-tint);padding:16px 18px;display:flex;gap:14px;align-items:center;">
+      <div data-contrast-exempt="intentional-counterexample" style="width:44px;height:44px;border-radius:12px;background:var(--signal);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;">Aa</div>
+      <div style="font-size:12.5px;color:var(--busy);line-height:1.5;"><b>Forbidden.</b> White on <code>--signal</code> is 1.63:1. This is the pair Concepts A and B used most.</div>
+    </div>
+  </div>
+
+  <!-- TRIAD -->
+  <div class="eyebrow" style="margin:34px 0 12px;">Space-picker triad &mdash; scoped to Studio calendar, Request studio time and Add event</div>
+  <div class="grid3">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="height:64px;background:var(--ok);"></div>
+      <div style="padding:14px 18px;"><div style="display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:var(--ok);"></span><b style="font-size:13px;color:var(--ok);">Available</b></div><div class="hx" style="font-size:11.5px;color:var(--ink-3);margin-top:3px;">--ok #2c7449 &middot; <span class="num">4.86</span> on its tint</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="height:64px;background:var(--wait);"></div>
+      <div style="padding:14px 18px;"><div style="display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:var(--wait);"></span><b style="font-size:13px;color:var(--wait);">Pending</b></div><div class="hx" style="font-size:11.5px;color:var(--ink-3);margin-top:3px;">--wait #8a5c00 &middot; the same value as --signal-deep</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="height:64px;background:var(--busy);"></div>
+      <div style="padding:14px 18px;"><div style="display:flex;align-items:center;gap:9px;"><span style="width:9px;height:9px;border-radius:50%;background:var(--busy);"></span><b style="font-size:13px;color:var(--busy);">Busy</b></div><div class="hx" style="font-size:11.5px;color:var(--ink-3);margin-top:3px;">--busy #a33a2e &middot; also conflict flags &amp; destructive confirms</div></div>
+    </div>
+  </div>
+  <p style="font-size:12.5px;color:var(--ink-3);margin:11px 0 0;max-width:900px;line-height:1.55;">A deliberate exception to the one-signal rule: three simultaneous states cannot be told apart by one hue. Every state is also labelled in text, so hue is reinforcement rather than the sole carrier.</p>
+
+  <!-- COMPONENTS -->
+  <div class="eyebrow" style="margin:34px 0 12px;">Components &mdash; where the rationed palette had a bill to pay</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
+    <div class="card">
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:14px;">Avatars &mdash; no per-person hue</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="avatar">EW</div><div class="avatar">JT</div><div class="avatar">MW</div><div class="avatar">LP</div>
+        <div style="width:1px;height:34px;background:var(--hairline);margin:0 6px;"></div>
+        <div style="background:var(--band-card);border-radius:12px;padding:8px;display:flex;gap:8px;">
+          <div class="avatar" style="background:#3a322d;color:var(--band-ink);">EW</div>
+          <div class="avatar" style="background:#3a322d;color:var(--band-ink);">JT</div>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:12px;line-height:1.5;"><code>--sand</code> with <code>--ink-2</code> initials on paper (<span class="num">7.05</span>); <code>--band-ink</code> inside the band (<span class="num">14.10</span>). Photo whenever there is one. In A and B this was the main place colour lived &mdash; and where both failed hardest.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:12.5px;font-weight:700;margin-bottom:14px;">Chips, badges, buttons</div>
+      <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+        <span class="chip">Instructor</span><span class="chip">Small Group</span><span class="chip sel">All teams</span>
+        <span class="badge">2</span><span class="badge">12</span>
+        <span style="width:9px;height:9px;border-radius:50%;background:var(--signal-deep);display:inline-block;"></span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <span class="btnp">Send request</span><span class="btns">Cancel</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:12px;line-height:1.5;">One amber fill per screen &mdash; that fill <i>is</i> the primary action. Unread marks use <code>--signal-deep</code> (<span class="num">5.81</span>), never bare amber on white.</div>
+    </div>
+  </div>
+
+  <!-- ROW PATTERN -->
+  <div class="eyebrow" style="margin:34px 0 12px;">The schedule row &mdash; one pattern, four places</div>
+  <div class="card" style="padding:6px 22px 14px;">
+    <div class="hrow"><div class="timelead">4:30<span style="font-size:14px;">p</span></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Junior Comp Team</div><div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;">Class &middot; Studio A</div></div><span style="width:7px;height:7px;border-radius:50%;background:var(--ink-3);"></span></div>
+    <div class="hrow"><div class="timelead">6:00<span style="font-size:14px;">p</span></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Small Group &mdash; Rise Up</div><div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;">Rehearsal &middot; Studio B</div></div><span style="width:7px;height:7px;border-radius:50%;background:var(--ink-3);"></span></div>
+    <div class="hrow" style="border-bottom:none;"><div class="timelead">8:15<span style="font-size:14px;">a</span></div><div style="flex:1;"><div style="font-size:14.5px;font-weight:600;">Regional Championships</div><div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;">Call time &middot; Riverside Convention Center</div></div><span style="width:7px;height:7px;border-radius:50%;background:var(--signal-deep);"></span></div>
+  </div>
+  <p style="font-size:12.5px;color:var(--ink-3);margin:11px 0 0;max-width:900px;line-height:1.55;">Time large on the left, hairline between rows, an <code>--ink-3</code> dot for event type &mdash; amber only when the row is the one that needs a person. Used by Schedule, both home screens&rsquo; &ldquo;This week&rdquo;, the Director&rsquo;s Today &amp; this week, and the Team / Group Dance upcoming lists.</p>
+
+  <!-- RATIO TABLE -->
+  <div class="eyebrow" style="margin:34px 0 12px;">Verified</div>
+  <div class="card">
+    <table class="ratios">
+      <thead><tr><th style="width:280px;">Pair</th><th style="width:110px;">Ratio</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td><b>--ink</b> on --paper / --surface / --sand</td><td><span class="num">12.45&ndash;14.34</span></td><td>Titles, row names, body</td></tr>
+        <tr><td><b>--ink-2</b> on --paper / --surface / --sand</td><td><span class="num">7.05&ndash;8.12</span></td><td>Secondary lines, avatar initials, chip labels</td></tr>
+        <tr><td><b>--ink-3</b> on --paper / --surface / --sand</td><td><span class="num">5.24&ndash;6.03</span></td><td>Eyebrows, 11px meta, category dots</td></tr>
+        <tr><td><b>--band-ink</b> on --band / --band-card</td><td><span class="num">14.10&ndash;16.21</span></td><td>Everything inside the band</td></tr>
+        <tr><td><b>--band-ink-2</b> on --band / --band-card</td><td><span class="num">6.01&ndash;6.91</span></td><td>Band eyebrows and meta</td></tr>
+        <tr><td><b>--signal</b> on --band / --band-card</td><td><span class="num">9.50&ndash;10.93</span></td><td>Call times and countdowns reversed out of the band</td></tr>
+        <tr><td><b>--signal-ink</b> on --signal</td><td><span class="num">5.46</span></td><td>The one amber fill per screen</td></tr>
+        <tr><td><b>--signal-deep</b> on light surfaces &amp; --signal-tint</td><td><span class="num">5.05&ndash;5.81</span></td><td>Unread dots and badges, pinned labels, Today marker</td></tr>
+        <tr><td><b>--ok / --wait / --busy</b> on white and their tints</td><td><span class="num">4.86&ndash;6.56</span></td><td>Space picker, conflict flags</td></tr>
+        <tr><td><b>--paper</b> on --ink</td><td><span class="num">13.43</span></td><td>Selected chip, selected day in the day strip</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:14px;padding-top:13px;border-top:1px dashed var(--hairline);font-size:11.5px;color:var(--ink-3);line-height:1.55;">
+      One recorded exemption: <code>--hairline</code> is 1.35:1 against white. Purely decorative separators are exempt under SC&nbsp;1.4.11, and every row a hairline separates is independently distinguishable by its own text. Revisit if a hairline ever becomes the only signal for something.
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

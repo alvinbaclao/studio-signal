@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700;6..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00;
+    --shadow: 0 -8px 30px -12px rgba(44,32,12,.28);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:rgba(28,23,20,.4);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .prow{display:flex;align-items:center;gap:12px;padding:13px 0;}
+  .prow + .prow{border-top:1px solid var(--sand);}
+  .radio{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--hairline);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .radio.on{border-color:var(--band);}
+  .radio.on .dot{width:11px;height:11px;border-radius:50%;background:var(--band);}
+  .typeicon{width:36px;height:36px;border-radius:11px;background:var(--sand);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .typeicon svg{width:17px;height:17px;color:var(--ink-2);}
+  .field{background:var(--sand);border-radius:12px;padding:12px 15px;font-size:14px;color:var(--ink);}
+  .field .ph{color:var(--ink-3);}
+
+  .screen{width:390px;min-height:844px;background:transparent;display:flex;flex-direction:column;justify-content:flex-end;}
+  .sheet{background:var(--paper);border-radius:22px 22px 0 0;box-shadow:var(--shadow);max-height:85%;display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+  <div class="sheet">
+
+    <div style="display:flex;justify-content:center;padding-top:10px;">
+      <div style="width:36px;height:4px;border-radius:99px;background:var(--hairline);"></div>
+    </div>
+
+    <div class="pad" style="margin-top:12px;">
+      <h2 style="font-size:17px;">Event type</h2>
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:4px;">Nothing fit? Pick Other and give it your own label.</div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding-bottom:6px;">
+      <div class="pad" style="margin-top:14px;">
+
+        <div class="prow">
+          <div class="radio on"><div class="dot"></div></div>
+          <div class="typeicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13.5px;font-weight:700;">Class / Rehearsal</div>
+            <div style="font-size:11px;color:var(--ink-3);">Regular practice time</div>
+          </div>
+        </div>
+
+        <div class="prow">
+          <div class="radio"></div>
+          <div class="typeicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13.5px;font-weight:700;">Studio time request</div>
+            <div style="font-size:11px;color:var(--ink-3);">Books a room &middot; sent to the Director for approval</div>
+          </div>
+        </div>
+
+        <div class="prow">
+          <div class="radio"></div>
+          <div class="typeicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13.5px;font-weight:700;">Call time</div>
+            <div style="font-size:11px;color:var(--ink-3);">For a competition or performance entry</div>
+          </div>
+        </div>
+
+        <div class="prow">
+          <div class="radio"></div>
+          <div class="typeicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 11.5a8.4 8.4 0 01-9 8.4 8.5 8.5 0 01-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0121 11.5z"/></svg></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13.5px;font-weight:700;">Dancer meeting</div>
+            <div style="font-size:11px;color:var(--ink-3);">A sit-down, not a class</div>
+          </div>
+        </div>
+
+        <div class="prow" style="align-items:flex-start;">
+          <div class="radio" style="margin-top:1px;"></div>
+          <div class="typeicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13.5px;font-weight:700;">Other</div>
+            <div style="font-size:11px;color:var(--ink-3);margin-bottom:8px;">Not one of the above? Name it yourself.</div>
+            <div class="field"><span class="ph">e.g. Costume swap, picture day setup&hellip;</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="pad" style="padding-top:12px;padding-bottom:24px;border-top:1px solid var(--hairline);">
+      <div style="background:var(--band);color:var(--signal);text-align:center;padding:14px;border-radius:13px;font-weight:700;font-size:13.5px;">Done</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

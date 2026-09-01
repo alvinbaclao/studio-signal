@@ -1,0 +1,117 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "./supabase";
+
+// person.status, mirrored from the database enum in backend/migrations/0001_schema.sql.
+export type PersonStatus = "pending" | "confirmed" | "declined";
+
+export type Role = "director" | "instructor" | "dancer" | "parent";
+
+export interface CurrentPerson {
+  id: string;
+  studio_id: string;
+  full_name: string;
+  status: PersonStatus;
+  roles: Role[];
+}
+
+interface AuthState {
+  session: Session | null;
+  /** null while loading, undefined if signed in but no person row exists yet
+   *  (no invite/join-code redeemed) */
+  person: CurrentPerson | null | undefined;
+  loading: boolean;
+  refreshPerson: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthState | null>(null);
+
+// Load the signed-in person exactly this way, and nowhere else — see
+// PROJECT_KNOWLEDGE.md: "load the current person via
+// select * from person where auth_user_id = auth.uid()". Never match by
+// email; never write to person.auth_user_id from here or anywhere in the
+// client — only app.redeem_invite and app.redeem_join_code may ever set it.
+async function loadCurrentPerson(): Promise<CurrentPerson | null> {
+  const { data: personRows, error: personError } = await supabase
+    .from("person")
+    .select("id, studio_id, full_name, status")
+    .limit(1);
+
+  if (personError || !personRows || personRows.length === 0) return null;
+
+  const person = personRows[0] as {
+    id: string;
+    studio_id: string;
+    full_name: string;
+    status: PersonStatus;
+  };
+
+  const { data: roleRows } = await supabase
+    .from("person_role_assignment")
+    .select("role")
+    .eq("person_id", person.id);
+
+  const roles = (roleRows ?? []).map((r) => r.role as Role);
+
+  return { ...person, roles };
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [person, setPerson] = useState<CurrentPerson | null | undefined>(
+    null
+  );
+  const [loading, setLoading] = useState(true);
+
+  const refreshPerson = async () => {
+    const p = await loadCurrentPerson();
+    setPerson(p ?? undefined);
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      setSession(data.session);
+      if (data.session) await refreshPerson();
+      setLoading(false);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
+        if (newSession) {
+          await refreshPerson();
+        } else {
+          setPerson(null);
+        }
+      }
+    );
+
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ session, person, loading, refreshPerson }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+}
+
+// Convenience role checks — UI-only (hide/show), never a substitute for the
+// database's own RLS enforcement. See PROJECT_KNOWLEDGE.md: "Never implement
+// a permission check in React."
+export function hasRole(person: CurrentPerson | null | undefined, role: Role) {
+  return person?.status === "confirmed" && (person?.roles.includes(role) ?? false);
+}

@@ -1,0 +1,310 @@
+<title>Navigation Map</title>
+<style>
+  :root{
+    --bg:#fbf7f1; --surface:#ffffff; --surface-2:#f5eee4; --border:#e7dccd;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --accent:#8a5c00; --accent-fill:#ffc12b; --accent-ink:#5f4604;
+    --chip-parent-bg:#f5eee4; --chip-parent-ink:#574e47;
+    --chip-instr-bg:#1c1714; --chip-instr-ink:#ffc12b;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1c1714; --surface:#2a2320; --surface-2:#332b26; --border:#473d34;
+      --ink:#f8f4ee; --ink-2:#d9cfc4; --ink-3:#aaa094;
+      --accent:#ffc12b; --accent-fill:#ffc12b; --accent-ink:#2a1f00;
+      --chip-parent-bg:#3a322c; --chip-parent-ink:#d9cfc4;
+      --chip-instr-bg:#ffc12b; --chip-instr-ink:#2a1f00;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1c1714; --surface:#2a2320; --surface-2:#332b26; --border:#473d34;
+    --ink:#f8f4ee; --ink-2:#d9cfc4; --ink-3:#aaa094;
+    --accent:#ffc12b; --accent-fill:#ffc12b; --accent-ink:#2a1f00;
+    --chip-parent-bg:#3a322c; --chip-parent-ink:#d9cfc4;
+    --chip-instr-bg:#ffc12b; --chip-instr-ink:#2a1f00;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;text-wrap:balance;}
+  a{color:var(--accent);}
+  .wrap{max-width:880px;margin:0 auto;padding:56px 24px 90px;}
+
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .lede{font-size:16px;color:var(--ink-2);line-height:1.65;max-width:640px;margin-top:14px;}
+  .lede + .lede{margin-top:10px;}
+
+  .callout{
+    margin-top:32px;border:1px solid var(--border);border-radius:16px;
+    background:var(--surface);padding:22px 24px;display:flex;flex-direction:column;gap:14px;
+  }
+  .callout .q{display:flex;gap:14px;align-items:flex-start;}
+  .callout .qn{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:13px;
+    color:var(--accent-ink);background:var(--accent-fill);width:24px;height:24px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+  }
+  .callout .qt{font-size:14.5px;line-height:1.6;color:var(--ink);}
+  .callout .qt b{font-weight:700;}
+  .callout .qt .parent-chip, .callout .qt .instr-chip{
+    display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700;
+  }
+  .parent-chip{background:var(--chip-parent-bg);color:var(--chip-parent-ink);}
+  .instr-chip{background:var(--chip-instr-bg);color:var(--chip-instr-ink);}
+
+  figure{margin:44px 0 8px;}
+  .diagram-frame{
+    border:1px solid var(--border);border-radius:18px;background:var(--surface);
+    padding:20px clamp(8px,3vw,28px) 24px;overflow-x:auto;
+  }
+  svg{display:block;margin:0 auto;max-width:100%;height:auto;}
+  figcaption{font-size:12.5px;color:var(--ink-3);margin-top:12px;line-height:1.6;text-align:center;}
+
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px;}
+  th{
+    text-align:left;font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-3);font-weight:700;padding:0 14px 10px;
+  }
+  td{padding:13px 14px;border-top:1px solid var(--border);vertical-align:top;line-height:1.55;}
+  td:first-child, th:first-child{padding-left:0;width:120px;color:var(--ink-3);font-weight:600;font-size:12px;}
+  .tbl-frame{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:18px 20px 6px;overflow-x:auto;}
+  .colhead{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:14px;}
+  .studio-col{color:var(--accent-ink);}
+
+  .steps{list-style:none;margin:16px 0 0;padding:0;counter-reset:step;}
+  .steps li{
+    counter-increment:step;position:relative;padding:14px 0 14px 46px;
+    border-top:1px solid var(--border);font-size:13.5px;line-height:1.6;color:var(--ink-2);
+  }
+  .steps li:first-child{border-top:none;}
+  .steps li::before{
+    content:counter(step);position:absolute;left:0;top:14px;
+    width:28px;height:28px;border-radius:50%;background:var(--surface-2);color:var(--ink);
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:12.5px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .steps li b{color:var(--ink);font-weight:700;}
+  .steps-frame{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:6px 22px;margin-top:14px;}
+
+  .fine{font-size:12.5px;color:var(--ink-3);line-height:1.6;margin-top:34px;padding-top:20px;border-top:1px solid var(--border);}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="wrap">
+
+  <span class="eyebrow">Dance Studio Messenger V2 &middot; reference</span>
+  <h1 style="font-size:clamp(28px,4vw,36px);margin-top:10px;letter-spacing:-.01em;">Navigation map</h1>
+  <p class="lede">Where a parent or student actually looks, and where the Studio destination fits in relative to it &mdash; not a new tab, a pinned row one level in.</p>
+
+  <div class="callout">
+    <div class="q">
+      <span class="qn">1</span>
+      <div class="qt">As a parent or student you have exactly <b>four</b> tabs, always on screen: <b>Home</b>, <b>Schedule</b>, <b>Messaging</b>, <b>Profile</b>. There is no fifth &ldquo;Studio&rdquo; tab. Home is a single feed of everything that's yours &mdash; if you hold two roles, like <span class="instr-chip">Instructor</span> and <span class="parent-chip">Parent</span> at once, both show up there with a small chip saying whose item it is, not on two separate screens.</div>
+    </div>
+    <div class="q">
+      <span class="qn">2</span>
+      <div class="qt">Studio isn't special plumbing &mdash; it's a <b>virtual destination</b>, built exactly like a Team or a Group Dance, just scoped to <i>everyone</i> instead of one roster. You reach it the same way you'd reach Jazz II: Home &rarr; My teams &amp; dances &rarr; See all, where Studio is pinned as the permanent first row. Once inside, it has the same five sub-tabs any Team gets &mdash; Home, Schedule, Bulletin, Media, Essentials.</div>
+    </div>
+  </div>
+
+  <figure>
+    <div class="diagram-frame">
+<svg viewBox="0 0 920 1140" role="img" aria-label="Flow diagram: the four primary nav tabs sit above Home, which links to the Teams and Dances list, which links to any destination's five sub-tabs. Studio is the pinned first row of that list, and an Important-flagged Studio post pushes back up into Home's Needs your attention, while the Bulletin tab's message shortcut opens the same thread as the Messaging tab.">
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <!-- ============ PRIMARY NAV ============ -->
+  <text x="110" y="24" font-family="Bricolage Grotesque" font-size="11" letter-spacing="1.3" font-weight="700" fill="var(--ink-3)">PRIMARY NAV — ALWAYS ON SCREEN</text>
+
+  <g font-family="Bricolage Grotesque" font-weight="700" font-size="13.5">
+    <rect x="110" y="40" width="160" height="50" rx="12" fill="var(--accent-fill)" stroke="none"/>
+    <text x="190" y="70" text-anchor="middle" fill="var(--accent-ink)">Home</text>
+
+    <rect x="290" y="40" width="160" height="50" rx="12" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+    <text x="370" y="70" text-anchor="middle" fill="var(--ink)">Schedule</text>
+
+    <rect x="470" y="40" width="160" height="50" rx="12" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+    <text x="550" y="70" text-anchor="middle" fill="var(--ink)">Messaging</text>
+
+    <rect x="650" y="40" width="160" height="50" rx="12" fill="none" stroke="var(--border)" stroke-width="1.5"/>
+    <text x="730" y="70" text-anchor="middle" fill="var(--ink)">Profile</text>
+  </g>
+
+  <line x1="190" y1="90" x2="190" y2="128" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ============ HOME TAB BOX ============ -->
+  <rect x="110" y="130" width="700" height="330" rx="16" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="132" y="158" font-family="Bricolage Grotesque" font-size="11" letter-spacing="1.1" font-weight="700" fill="var(--ink-3)">HOME TAB — YOUR PERSONAL, AGGREGATED VIEW</text>
+
+  <g font-family="Instrument Sans" font-size="13">
+    <!-- row 1: needs attention, accent ring (push landing target) -->
+    <rect x="132" y="176" width="656" height="38" rx="9" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 3"/>
+    <text x="150" y="200" font-weight="700" fill="var(--ink)">Needs your attention</text>
+    <text x="470" y="200" fill="var(--ink-3)" font-size="12">urgent items, either role</text>
+
+    <text x="150" y="242" font-weight="700" fill="var(--ink)">Next up</text>
+    <text x="470" y="242" fill="var(--ink-3)" font-size="12">swipeable, soonest first</text>
+    <line x1="132" y1="256" x2="788" y2="256" stroke="var(--border)"/>
+
+    <text x="150" y="284" font-weight="700" fill="var(--ink)">This week</text>
+    <text x="470" y="284" fill="var(--ink-3)" font-size="12">capped preview of Schedule</text>
+    <line x1="132" y1="298" x2="788" y2="298" stroke="var(--border)"/>
+
+    <!-- row 4: my teams & dances, exit point -->
+    <text x="150" y="326" font-weight="700" fill="var(--ink)">My teams &amp; dances</text>
+    <text x="470" y="326" fill="var(--accent)" font-size="12" font-weight="700">See all →</text>
+    <line x1="132" y1="340" x2="788" y2="340" stroke="var(--border)"/>
+
+    <text x="150" y="368" font-weight="700" fill="var(--ink)">Recent highlights</text>
+    <text x="470" y="368" fill="var(--ink-3)" font-size="12">media, most recent first</text>
+    <line x1="132" y1="382" x2="788" y2="382" stroke="var(--border)"/>
+
+    <text x="150" y="410" font-weight="700" fill="var(--ink)">Inbox preview</text>
+    <text x="470" y="410" fill="var(--ink-3)" font-size="12">latest threads</text>
+  </g>
+
+  <line x1="460" y1="460" x2="460" y2="498" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="474" y="484" font-size="12" fill="var(--ink-3)">from “My teams &amp; dances”</text>
+
+  <!-- ============ TEAMS & DANCES BOX ============ -->
+  <rect x="110" y="500" width="700" height="260" rx="16" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="132" y="528" font-family="Bricolage Grotesque" font-size="11" letter-spacing="1.1" font-weight="700" fill="var(--ink-3)">TEAMS &amp; DANCES — THE FULL LIST</text>
+
+  <!-- Studio row, accent filled, pinned -->
+  <rect x="132" y="546" width="656" height="40" rx="10" fill="var(--accent-fill)"/>
+  <text x="150" y="571" font-family="Bricolage Grotesque" font-weight="700" font-size="13.5" fill="var(--accent-ink)">Studio</text>
+  <text x="700" y="571" text-anchor="end" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--accent-ink)">PINNED · ALWAYS FIRST</text>
+
+  <text x="150" y="604" font-family="Bricolage Grotesque" font-size="10.5" letter-spacing="1" font-weight="700" fill="var(--ink-3)">TEAMS</text>
+  <g font-family="Instrument Sans" font-size="13" fill="var(--ink)">
+    <text x="150" y="630">Jazz II</text>
+    <text x="150" y="666">Contemporary I</text>
+  </g>
+  <line x1="132" y1="644" x2="788" y2="644" stroke="var(--border)"/>
+
+  <text x="150" y="694" font-family="Bricolage Grotesque" font-size="10.5" letter-spacing="1" font-weight="700" fill="var(--ink-3)">GROUP &amp; SOLO DANCES</text>
+  <text x="150" y="722" font-family="Instrument Sans" font-size="13" fill="var(--ink)">Regional Classic 2027</text>
+
+  <line x1="460" y1="760" x2="460" y2="798" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="474" y="784" font-size="12" fill="var(--ink-3)">tap any row</text>
+
+  <!-- ============ DESTINATION BOX ============ -->
+  <rect x="110" y="800" width="700" height="300" rx="16" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <text x="132" y="828" font-family="Bricolage Grotesque" font-size="11" letter-spacing="1.1" font-weight="700" fill="var(--ink-3)">DESTINATION — SAME SHAPE FOR ALL FOUR KINDS</text>
+
+  <g font-family="Bricolage Grotesque" font-weight="700" font-size="12.5">
+    <rect x="140" y="846" width="128" height="40" rx="20" fill="var(--surface-2)"/>
+    <text x="204" y="871" text-anchor="middle" fill="var(--ink)">Home</text>
+
+    <rect x="278" y="846" width="128" height="40" rx="20" fill="var(--surface-2)"/>
+    <text x="342" y="871" text-anchor="middle" fill="var(--ink)">Schedule</text>
+
+    <rect x="416" y="846" width="128" height="40" rx="20" fill="var(--accent-fill)"/>
+    <text x="480" y="871" text-anchor="middle" fill="var(--accent-ink)">Bulletin</text>
+
+    <rect x="554" y="846" width="128" height="40" rx="20" fill="var(--surface-2)"/>
+    <text x="618" y="871" text-anchor="middle" fill="var(--ink)">Media</text>
+
+    <rect x="692" y="846" width="98" height="40" rx="20" fill="var(--surface-2)"/>
+    <text x="741" y="871" text-anchor="middle" fill="var(--ink)">Essentials</text>
+  </g>
+
+  <text x="460" y="916" text-anchor="middle" font-size="13" fill="var(--ink-2)">Only the scope changes — everyone, one roster, or one cast:</text>
+
+  <g font-family="Instrument Sans" font-weight="600" font-size="11.5">
+    <rect x="163" y="944" width="150" height="30" rx="15" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+    <text x="238" y="964" text-anchor="middle" fill="var(--accent)">Studio → everyone</text>
+
+    <rect x="335" y="944" width="140" height="30" rx="15" fill="none" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="405" y="964" text-anchor="middle" fill="var(--ink-2)">Jazz II → its roster</text>
+
+    <rect x="497" y="944" width="260" height="30" rx="15" fill="none" stroke="var(--border)" stroke-width="1.4"/>
+    <text x="627" y="964" text-anchor="middle" fill="var(--ink-2)">Regional Classic 2027 → its cast</text>
+  </g>
+
+  <!-- ============ CALLBACK A: Important push, left margin ============ -->
+  <g style="color:var(--accent)">
+    <path d="M 132,566 C 60,566 60,290 130,197" fill="none" stroke="currentColor" stroke-width="1.8" marker-end="url(#arrow)"/>
+  </g>
+  <text font-family="Instrument Sans" font-weight="700" font-size="11" fill="var(--accent)">
+    <tspan x="16" y="352">If marked</tspan>
+    <tspan x="16" y="366">Important,</tspan>
+    <tspan x="16" y="380">pushes to</tspan>
+    <tspan x="16" y="394">Home too</tspan>
+  </text>
+
+  <!-- ============ CALLBACK B: Bulletin ↔ Messaging, right margin ============ -->
+  <g style="color:var(--ink-3)">
+    <path d="M 788,860 C 900,860 900,120 812,72" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+  </g>
+  <text font-family="Instrument Sans" font-weight="700" font-size="11" fill="var(--ink-3)">
+    <tspan x="826" y="452">Message</tspan>
+    <tspan x="826" y="466">shortcut —</tspan>
+    <tspan x="826" y="480">same thread,</tspan>
+    <tspan x="826" y="494">not a 2nd</tspan>
+    <tspan x="826" y="508">inbox</tspan>
+  </text>
+
+</svg>
+    </div>
+    <figcaption>Home aggregates everything personal and links out to the full Teams &amp; Dances list; Studio is that list's pinned first row, not a separate tab. Every destination — Studio included — gets the same five sub-tabs. An Important-flagged Studio post is the one thing that reaches back up into Home on its own; a Bulletin message shortcut opens the exact same thread the Messaging tab would.</figcaption>
+  </figure>
+
+  <h2 style="font-size:19px;margin-top:52px;">Home tab vs. Studio's Home tab</h2>
+  <p class="lede" style="font-size:14px;margin-top:8px;">Same tab name, two different jobs — this is usually where the confusion actually starts.</p>
+
+  <div class="tbl-frame">
+    <table>
+      <tr>
+        <th></th>
+        <th class="colhead">Home <span style="font-weight:600;color:var(--ink-3);">(primary tab)</span></th>
+        <th class="colhead studio-col">Studio → Home <span style="font-weight:600;color:var(--ink-3);">(sub-tab)</span></th>
+      </tr>
+      <tr>
+        <td>Scope</td>
+        <td>Only what's yours — your kid's team, your own class if you teach</td>
+        <td>The whole studio, no personal filtering</td>
+      </tr>
+      <tr>
+        <td>Populated by</td>
+        <td>The app, pulled from every destination you belong to</td>
+        <td>The Director or an Instructor, posting directly</td>
+      </tr>
+      <tr>
+        <td>Answers</td>
+        <td>&ldquo;What do I need to do today?&rdquo;</td>
+        <td>&ldquo;What's going on studio-wide?&rdquo;</td>
+      </tr>
+      <tr>
+        <td>Reached from</td>
+        <td>Always one tap — it's the app's front door</td>
+        <td>Home → My teams &amp; dances → See all → Studio</td>
+      </tr>
+    </table>
+  </div>
+
+  <h2 style="font-size:19px;margin-top:52px;">Walked through: Priya's Friday</h2>
+  <p class="lede" style="font-size:14px;margin-top:8px;">Priya holds both roles — <span class="parent-chip">Parent</span> to Aditi, <span class="instr-chip">Instructor</span> for Jazz II — which is exactly where this distinction has to hold up.</p>
+
+  <div class="steps-frame">
+    <ol class="steps">
+      <li>She opens the app to <b>Home</b>. It's her personal feed only — Aditi's costume form sits next to a Jazz II roster task, each tagged with a small chip so she knows whose it is. Nothing studio-wide is mixed in here.</li>
+      <li>A studio-wide post about the recital packing list was marked <b>Important</b> by the Director — so it shows up in her Home's &ldquo;Needs your attention&rdquo; automatically, without her going to look for it.</li>
+      <li>Curious what else is posted, she taps <b>My teams &amp; dances → See all</b>. <b>Studio</b> is sitting at the top of that list, pinned above Jazz II and Aditi's entries — same list, same tap pattern as everything else.</li>
+      <li>Inside Studio, she lands on its own <b>Home</b> tab — a studio-wide version of the screen she just left — and can flip to <b>Bulletin</b> for the full post history, or <b>Essentials</b> for the packing list itself.</li>
+    </ol>
+  </div>
+
+  <p class="fine">Not drawn above, to keep it readable: the primary <b>Schedule</b> tab works the same way as Home does — it aggregates the Schedule sub-tab of every destination you're in, Studio included, into one calendar. And the <b>Media</b> sub-tab (Studio's and every destination's) is a plain thumbnail library, no relationship worth its own arrow.</p>
+
+</div>

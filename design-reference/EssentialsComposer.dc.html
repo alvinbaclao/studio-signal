@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .field{background:var(--sand);border-radius:12px;padding:14px;font-size:13.5px;color:var(--ink);}
+  .field .ph{color:var(--ink-3);}
+  .label{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:7px;display:block;}
+  .destrow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:var(--band);color:var(--band-ink);}
+  .typepick{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 8px;border-radius:13px;background:var(--sand);color:var(--ink-2);flex:1;}
+  .typepick.on{background:var(--band);color:var(--signal);}
+  .chev{width:16px;height:16px;color:var(--ink-3);flex-shrink:0;}
+  .row{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--hairline);border-radius:13px;}
+
+  .screen{width:390px;min-height:1280px;background:var(--paper);display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <div style="padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg class="icon" style="color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:16px;">Add an item</div>
+    </div>
+  </div>
+
+  <div class="pad" style="background:var(--band);padding-top:9px;padding-bottom:9px;display:flex;align-items:center;gap:7px;">
+    <span class="eyebrow" style="color:var(--band-ink-2);">STAGE, WARMED &middot; V2</span>
+    <span style="font-size:10.5px;color:var(--band-ink-2);">New &mdash; the destination behind the &ldquo;+ Add an item&rdquo; row on every Essentials tab (Studio, Team, and Comp Team all had it with nothing behind it) and TeamHome.dc.html's &ldquo;Add to Essentials&rdquo; quick action. Same shared-composer pattern as BulletinComposer.dc.html and MediaUpload.dc.html &mdash; pre-scoped to wherever it was opened from. Prototyped as opened from Jazz II &middot; Essentials.</span>
+  </div>
+
+  <div class="pad" style="padding-top:20px;">
+    <div class="destrow">
+      <svg class="icon" style="width:16px;height:16px;color:var(--signal);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg>
+      <div style="font-size:12.5px;font-weight:700;">Adding to Jazz II &middot; Essentials</div>
+    </div>
+    <div style="font-size:11px;color:var(--ink-3);margin-top:8px;">Studio-wide items (fees, general dress code) belong on Studio's own Essentials instead &mdash; this stays specific to Jazz II.</div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Item type</div>
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <div class="typepick on">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span style="font-size:11px;font-weight:700;">Document</span>
+      </div>
+      <div class="typepick">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        <span style="font-size:11px;font-weight:700;">Link</span>
+      </div>
+      <div class="typepick">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span style="font-size:11px;font-weight:700;">Audio</span>
+      </div>
+      <div class="typepick">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span style="font-size:11px;font-weight:700;">Note</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <span class="label">Title</span>
+    <div class="field"><span class="ph">e.g. Jazz II Recital Costume</span></div>
+  </div>
+
+  <div class="pad" style="margin-top:18px;">
+    <span class="label">Details</span>
+    <div class="field" style="min-height:88px;"><span class="ph">Where to order, sizing notes, the alterations deadline&hellip;</span></div>
+  </div>
+
+  <div class="pad" style="margin-top:18px;">
+    <span class="label">Attach a file or paste a link <span style="font-weight:500;color:var(--ink-3);">(optional)</span></span>
+    <div class="row" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:11px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:var(--sand);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg style="width:16px;height:16px;color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.19-9.19a3.5 3.5 0 015 5l-9.2 9.19a1.5 1.5 0 01-2.12-2.12l8.49-8.48"/></svg>
+        </div>
+        <span style="font-size:13px;color:var(--ink-3);">Nothing attached yet</span>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:auto;padding-top:24px;padding-bottom:22px;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:15px 20px;border-radius:12px;background:var(--signal);color:var(--signal-ink);font-size:14.5px;font-weight:700;">
+      Add to Jazz II
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:10px;text-align:center;">Added by Priya Shah, Instructor &middot; visible to Jazz II families right after</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

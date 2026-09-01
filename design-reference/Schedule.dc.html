@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700;6..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --busy:#a33a2e;
+    --shadow-sm: 0 4px 14px -6px rgba(44,32,12,.22);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .chev{width:16px;height:16px;color:var(--ink-3);flex-shrink:0;}
+  .softcard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-sm);}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--signal);color:var(--signal-ink);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .role-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .role-dot.instr{background:var(--band);box-shadow:0 0 0 2px var(--signal);}
+  .role-dot.parent{background:var(--surface);box-shadow:0 0 0 2px var(--ink-3);}
+  .filterchip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--hairline);color:var(--ink-2);font-size:12.5px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+  .filterchip.on{background:var(--band);border-color:var(--band);color:var(--band-ink);}
+  .hrow{display:flex;align-items:center;gap:12px;padding:13px 0;}
+  .hrow + .hrow{border-top:1px solid var(--sand);}
+  .timelead{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:12px;color:var(--ink-2);width:58px;flex-shrink:0;}
+  .navitem{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;color:var(--ink-3);font-weight:600;}
+  .navitem.on{color:var(--ink);}
+
+  .daychip{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+  .daychip .dnum{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:13.5px;color:var(--ink);}
+  .daychip.today .dnum{background:var(--signal);color:var(--signal-ink);}
+  .daychip .dot{width:4.5px;height:4.5px;border-radius:50%;background:var(--busy);}
+  .daychip .dot.none{background:transparent;}
+
+  .screen{width:390px;min-height:1580px;background:var(--paper);display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <!-- ============ BRAND ROW ============ -->
+  <div class="pad" style="padding-top:16px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--ink-3);"></span>
+      <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:14px;color:var(--ink-2);">Riverside Dance Co.</span>
+    </div>
+    <div class="avatar">PS</div>
+  </div>
+
+  <!-- ============ TITLE + QUICK ADD ============ -->
+  <div class="pad" style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;">
+    <h1 style="font-size:25px;">Schedule</h1>
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--band);display:flex;align-items:center;justify-content:center;" title="Opens AddEvent.dc.html — instructor tools">
+      <svg style="width:17px;height:17px;color:var(--signal);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+  </div>
+  <div class="pad" style="margin-top:2px;">
+    <div style="font-size:11px;color:var(--ink-3);">Your own schedule &mdash; own classes, plus what Aditi&rsquo;s enrolled in</div>
+  </div>
+
+  <!-- ============ FILTER ROW — scales to any number of dances via a sheet, not more pills ============ -->
+  <div class="pad" style="margin-top:16px;display:flex;align-items:center;gap:8px;">
+    <div class="filterchip on">All</div>
+    <div class="filterchip" style="gap:8px;">
+      <svg style="width:13px;height:13px;color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+      Filter
+      <span style="display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--band);color:var(--signal);font-size:9.5px;font-weight:800;">6</span>
+    </div>
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:1px;background:var(--sand);border-radius:999px;padding:3px;">
+      <div style="padding:6px 13px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-sm);font-size:11.5px;font-weight:700;">Week</div>
+      <div style="padding:6px 13px;border-radius:999px;color:var(--ink-3);font-size:11.5px;font-weight:700;">Month</div>
+    </div>
+  </div>
+  <div class="pad" style="margin-top:5px;">
+    <div style="font-size:10.5px;color:var(--ink-3);">Filtering: Jazz II, Aditi&rsquo;s Contemporary Solo +4 more (6 of 8) &mdash; tap Filter to adjust</div>
+  </div>
+
+  <!-- ============ WEEK NAV ============ -->
+  <div class="pad" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
+    <svg style="width:18px;height:18px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:13.5px;">Week of Aug 31 &ndash; Sep 6</div>
+    <svg style="width:18px;height:18px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+  </div>
+
+  <!-- ============ DAY STRIP ============ -->
+  <div class="pad" style="margin-top:14px;display:flex;gap:2px;">
+    <div class="daychip today"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">M</span><div class="dnum">31</div><span class="dot"></span></div>
+    <div class="daychip"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">T</span><div class="dnum">1</div><span class="dot none"></span></div>
+    <div class="daychip"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">W</span><div class="dnum">2</div><span class="dot"></span></div>
+    <div class="daychip"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">T</span><div class="dnum">3</div><span class="dot"></span></div>
+    <div class="daychip"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">F</span><div class="dnum">4</div><span class="dot none"></span></div>
+    <div class="daychip"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">S</span><div class="dnum">5</div><span class="dot"></span></div>
+    <div class="daychip"><span style="font-size:10px;color:var(--ink-3);font-weight:600;">S</span><div class="dnum">6</div><span class="dot none"></span></div>
+  </div>
+
+  <!-- ============ DAY-GROUPED AGENDA ============ -->
+  <div class="pad" style="margin-top:26px;">
+    <div class="eyebrow">Monday, Aug 31 &middot; Today</div>
+    <div class="softcard" style="margin-top:10px;padding:2px 16px;">
+      <div class="hrow">
+        <div class="timelead">4:30 PM</div>
+        <span class="role-dot instr"></span>
+        <div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;">Jazz II rehearsal</div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="hrow">
+        <div class="timelead">6:00 PM</div>
+        <span class="role-dot parent"></span>
+        <div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;">Aditi &mdash; Contemporary class</div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Wednesday, Sep 2</div>
+    <div class="softcard" style="margin-top:10px;padding:2px 16px;">
+      <div class="hrow">
+        <div class="timelead">5:15 PM</div>
+        <span class="role-dot parent"></span>
+        <div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;">Costume fitting &mdash; Aditi</div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Thursday, Sep 3</div>
+    <div class="softcard" style="margin-top:10px;padding:2px 16px;">
+      <div class="hrow">
+        <div class="timelead">4:30 PM</div>
+        <span class="role-dot instr"></span>
+        <div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;">Jazz II &mdash; cleaning rehearsal</div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;padding-bottom:20px;">
+    <div class="eyebrow">Saturday, Sep 5</div>
+    <div class="softcard" style="margin-top:10px;padding:2px 16px;">
+      <div class="hrow">
+        <div class="timelead">9:00 AM</div>
+        <span class="role-dot parent"></span>
+        <div style="flex:1;min-width:0;font-size:13.5px;font-weight:600;">Tech &amp; dress rehearsal &mdash; Meridian PAC</div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;"></div>
+
+  <!-- ============ BOTTOM NAV ============ -->
+  <div style="display:flex;justify-content:space-around;padding:12px 0 18px;border-top:1px solid var(--hairline);background:var(--paper);">
+    <div class="navitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Home</div>
+    <div class="navitem on"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>Schedule</div>
+    <div class="navitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 01-9 8.4 8.5 8.5 0 01-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0121 11.5z"/></svg>Messages</div>
+    <div class="navitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>Profile</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

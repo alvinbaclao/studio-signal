@@ -1,0 +1,99 @@
+/* ============================================================================
+   "Stage, warmed" — the design system tokens.
+   Source of truth: docs/PROJECT_KNOWLEDGE.md. If you ever need to change one of
+   these values, change it there first and copy it here — never the other way
+   around, and never invent a new colour outside this list. Every pair here was
+   verified for WCAG AA; the lowest ratio in the system is 4.86:1.
+   ========================================================================== */
+
+:root {
+  /* Surfaces */
+  --paper: #fbf7f1;
+  --surface: #ffffff;
+  --sand: #f5eee4;
+  --hairline: #e7dccd;
+
+  /* The dark band — holds what needs a person */
+  --band: #1c1714;
+  --band-card: #2a2320;
+  --band-line: #3a322d;
+
+  /* Ink (text) */
+  --ink: #2f2925;
+  --ink-2: #574e47;
+  --ink-3: #6b615a;
+  --band-ink: #f8f4ee;
+  --band-ink-2: #aaa094;
+
+  /* Amber — the one saturated surface per zone, maximum */
+  --signal: #ffc12b;
+  --signal-ink: #5f4604; /* the ONLY text colour allowed on an amber fill */
+  --signal-deep: #8a5c00; /* amber text/dots on a light surface */
+  --signal-tint: #fdf0d2;
+  --signal-border: #f2e2bb;
+
+  /* The space-picker triad — Available / Pending / Busy. Used ONLY on the
+     space picker (Add event / Studio calendar). Never reuse these elsewhere. */
+  --ok: #2c7449;
+  --ok-tint: #e3f1e7;
+  --wait: #8a5c00;
+  --wait-tint: #fdf0d2;
+  --busy: #a33a2e;
+  --busy-tint: #f9e5e1;
+
+  /* Type ramp — set these via the font-family utility classes below, not by
+     hand, so the Bricolage/Instrument split stays consistent everywhere. */
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+}
+
+/* Load both families — see index.html for the actual Google Fonts <link>
+   tags (kept there, not @import, for faster first paint). */
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* ----------------------------------------------------------------------------
+   The five rules, as CSS discipline reminders (see PROJECT_KNOWLEDGE.md for
+   the full explanation of each):
+
+   1. Hierarchy is contrast and scale, never hue. Don't give a section its own
+      colour — tell sections apart with icon + label only.
+   2. One saturated (amber) surface per zone, maximum — at most one inside
+      the dark band, at most one on paper.
+   3. Amber has three forms, not interchangeable:
+        --signal       on dark, or as a fill only
+        --signal-ink   the ONLY text colour allowed on an amber fill
+        --signal-deep  amber text/dots on light surfaces
+      White text on an amber fill is forbidden (1.63:1 contrast).
+   4. The dark band (.band, below) holds what needs a person. Nothing
+      pressing ⇒ render no band at all — see the <Band> component, which
+      returns null with no children. Never render an empty band shell.
+   5. Schedules are hairline-separated rows with the time large on the left,
+      never a stack of cards — see <ScheduleRow>, build it once, reuse it
+      everywhere (global Schedule, every destination's Schedule tab, both
+      home screens' "This week").
+   -------------------------------------------------------------------------- */
+
+.band {
+  background: var(--band);
+  color: var(--band-ink);
+}
+
+.hairline {
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Canvas-only convention, explicitly NOT for this codebase: the V2 design
+   canvas marks admin-capable shared screens with a gold "🔑 admin tools"
+   banner. That's a device for a human scanning the canvas, not a real UI
+   element — build the actual role-conditional rendering instead (gate on
+   isDirector / teamsITeach / compTeamsIChoreograph), never a banner. */

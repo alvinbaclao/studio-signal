@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700;6..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --busy:#a33a2e;
+    --shadow-sm: 0 4px 14px -6px rgba(44,32,12,.22);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .chev{width:16px;height:16px;color:var(--ink-3);flex-shrink:0;}
+  .softcard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-sm);}
+  .swatch{width:44px;height:44px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:13px;}
+  .row{display:flex;align-items:center;gap:13px;padding:13px 16px;}
+  .row + .row{border-top:1px solid var(--sand);}
+  .rowtitle{flex:1;min-width:0;font-size:14px;font-weight:700;}
+  .rowsub{font-size:11.5px;color:var(--ink-3);margin-top:2px;font-weight:500;}
+  .newpost{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--signal-deep);flex-shrink:0;white-space:nowrap;}
+  .newpost .dot{width:6px;height:6px;border-radius:50%;background:var(--signal-deep);}
+  .allread{font-size:10.5px;color:var(--ink-3);flex-shrink:0;white-space:nowrap;}
+
+  .screen{width:390px;min-height:1980px;background:var(--paper);display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <!-- ============ HEADER ============ -->
+  <div class="pad" style="padding-top:18px;display:flex;align-items:center;gap:14px;">
+    <svg style="width:20px;height:20px;color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    <div>
+      <h2 style="font-size:19px;">Teams &amp; groups</h2>
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:2px;">Every Team, Comp Team &amp; Competition &middot; studio-wide</div>
+    </div>
+  </div>
+
+  <div class="pad" style="background:var(--band);margin-top:14px;padding-top:9px;padding-bottom:9px;display:flex;align-items:center;gap:7px;">
+    <span class="eyebrow" style="color:var(--band-ink-2);letter-spacing:.11em;">STAGE, WARMED &middot; V2</span>
+    <span style="font-size:10.5px;color:var(--band-ink-2);">New &mdash; the mobile browse point DirectorHomeMobile's Quick actions was missing: a Director scoped over every destination (not just &ldquo;my&rdquo; teams, since a Director isn't enrolled in any). Tapping a row opens that destination's own mobile Home &amp; Bulletin &mdash; TeamHome/TeamBulletin, CompHome/CompBulletin, StudioHome/StudioBulletin &mdash; screens already built at this width, not rebuilt here. The &ldquo;new posts&rdquo; marker reuses DirectorHome's Messaging oversight data so a Director can tell at a glance which destinations have something to catch up on.</span>
+  </div>
+
+  <!-- ============ SEARCH ============ -->
+  <div class="pad" style="margin-top:16px;">
+    <div style="display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--hairline);border-radius:13px;padding:11px 14px;">
+      <svg style="width:16px;height:16px;color:var(--ink-3);flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span style="font-size:13.5px;color:var(--ink-3);">Search teams &amp; groups&hellip;</span>
+    </div>
+  </div>
+
+  <!-- ============ STUDIO — pinned first, accent-filled ============ -->
+  <div class="pad" style="margin-top:22px;">
+    <div style="border-radius:18px;background:var(--band);box-shadow:var(--shadow-sm);overflow:hidden;">
+      <div class="row" style="padding:14px 16px;">
+        <div class="swatch" style="background:var(--signal);color:var(--signal-ink);">
+          <svg style="width:21px;height:21px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg>
+        </div>
+        <div class="rowtitle" style="color:var(--band-ink);">Studio
+          <div class="rowsub" style="color:var(--band-ink-2);">Whole-studio posts, media &amp; essentials</div>
+        </div>
+        <span class="newpost" style="color:var(--signal);"><span class="dot" style="background:var(--signal);"></span>New</span>
+        <svg class="chev" style="color:var(--band-ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TEAMS ============ -->
+  <div class="pad" style="margin-top:26px;">
+    <div class="eyebrow">Teams &middot; 4</div>
+    <div class="softcard" style="margin-top:11px;overflow:hidden;">
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#f4b942,#8a5c00);">JZ</div>
+        <div class="rowtitle">Jazz II
+          <div class="rowsub">Level 2 &middot; 12 dancers</div>
+        </div>
+        <span class="newpost"><span class="dot"></span>4 new</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#8fa6c9,#3f5a7a);">JC</div>
+        <div class="rowtitle">Junior Comp Team
+          <div class="rowsub">Level 1&ndash;2 &middot; Jamie Torres &middot; 18 dancers</div>
+        </div>
+        <span class="allread">All read</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#d8a6c4,#7a3f63);">SR</div>
+        <div class="rowtitle">Senior Team
+          <div class="rowsub">Level 4 &middot; Marcus Bell &middot; 9 dancers</div>
+        </div>
+        <span class="allread">All read</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#a3c98f,#4f6f34);">CI</div>
+        <div class="rowtitle">Contemporary I
+          <div class="rowsub">Level 3 &middot; instructor not yet assigned</div>
+        </div>
+        <span class="allread">All read</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMP TEAMS ============ -->
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Comp Teams &middot; Solo/Duo/Trio/Group &middot; 3</div>
+    <div class="softcard" style="margin-top:11px;overflow:hidden;">
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#c98fa8,#6b3350);">TF</div>
+        <div class="rowtitle">Take Flight
+          <div class="rowsub">Group &middot; Level 2 &middot; Marcus Bell &middot; 9 dancers</div>
+        </div>
+        <span class="newpost"><span class="dot"></span>3 new</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#8fbf9b,#3f6b4d);">LP</div>
+        <div class="rowtitle">Solo &mdash; Lila P.
+          <div class="rowsub">Level 3 &middot; Marcus Bell &middot; 1 dancer</div>
+        </div>
+        <span class="allread">All read</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#8fa6c9,#3f5a7a);">RS</div>
+        <div class="rowtitle">Duo &mdash; Ren &amp; Sofia
+          <div class="rowsub">Duo &middot; Level 3 &middot; Marcus Bell &middot; 2 dancers</div>
+        </div>
+        <span class="allread">All read</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DANCE COMPETITIONS ============ -->
+  <div class="pad" style="margin-top:22px;padding-bottom:24px;">
+    <div class="eyebrow">Dance Competitions &middot; 1</div>
+    <div class="softcard" style="margin-top:11px;overflow:hidden;">
+      <div class="row">
+        <div class="swatch" style="background:linear-gradient(155deg,#d8a6c4,#7a3f63);">RC</div>
+        <div class="rowtitle">Regional Classic 2027
+          <div class="rowsub">Meridian PAC &middot; Sep 9 &middot; 2 Comp Teams entered</div>
+        </div>
+        <span class="newpost"><span class="dot"></span>1 update</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.5;">Opens CompetitionOverview.dc.html &mdash; the same informational summary a parent sees, with Sam's Add/Upload controls. Entries, call times, and creating a new competition still open the web console; this is for checking in, not managing.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

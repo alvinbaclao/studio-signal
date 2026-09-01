@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700;6..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --busy:#a33a2e;
+    --shadow-sm: 0 4px 14px -6px rgba(44,32,12,.22);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;} a:hover{color:var(--ink);}
+  .pad{padding-left:20px;padding-right:20px;}
+  .softcard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-sm);}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;flex-shrink:0;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .seeall{font-size:12px;font-weight:700;color:var(--signal-deep);}
+  .hrow{display:flex;align-items:center;gap:12px;padding:12px 0;}
+  .hrow + .hrow{border-top:1px solid var(--sand);}
+  .chev{width:15px;height:15px;color:var(--ink-3);flex-shrink:0;}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:11px;font-weight:700;}
+  .timepill{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:12.5px;background:var(--sand);border-radius:8px;padding:6px 11px;flex-shrink:0;}
+  .timepill.tbd{background:transparent;border:1.5px dashed var(--hairline);color:var(--ink-3);font-weight:600;font-size:11px;}
+
+  .screen{width:390px;min-height:2020px;background:var(--paper);display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <div style="padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+      <svg class="icon" style="color:var(--ink-2);flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <div style="min-width:0;">
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Regional Classic 2027</div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:1px;">Dance competition &middot; Sep 9 &middot; Meridian PAC</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" style="background:var(--band);padding-top:9px;padding-bottom:9px;display:flex;align-items:center;gap:7px;">
+    <span class="eyebrow" style="color:var(--band-ink-2);">STAGE, WARMED &middot; V2</span>
+    <span style="font-size:10.5px;color:var(--band-ink-2);">New &mdash; a Competition's own summary page, informational rather than a full destination like a Team or Comp Team: one scrolling page, no sub-nav. Shown as Priya would see it, a Parent &mdash; view-only. The Director and each entered Comp Team's choreographer see the same page with Add/Upload controls. Reached from &ldquo;Competing at Regional Classic 2027 &rarr;&rdquo; on a Comp Team's own Home.</span>
+  </div>
+
+  <!-- ============ PHOTO HERO with countdown ============ -->
+  <div class="pad" style="padding-top:18px;">
+    <div style="position:relative;height:190px;border-radius:20px;overflow:hidden;">
+      <img src="photo-comp.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 22%;">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(20,14,4,.05) 0%, rgba(20,14,4,.68) 100%);"></div>
+      <div class="pill" style="position:absolute;top:12px;left:12px;background:var(--signal);color:var(--signal-ink);">
+        <svg style="width:12px;height:12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        12 days to go
+      </div>
+      <div style="position:absolute;left:16px;bottom:14px;color:#fff;">
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.4);">Regional Classic 2027</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px;">Meridian Performing Arts Center &middot; Sep 9</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VENUE / ADDRESS — overlaps hero ============ -->
+  <div class="pad" style="margin-top:-30px;position:relative;z-index:2;">
+    <div class="softcard" style="padding:14px 16px;">
+      <div style="display:flex;gap:14px;">
+        <div style="flex:1;">
+          <div class="eyebrow" style="color:var(--ink-3);">Date</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;margin-top:3px;">Sep 9, 2027</div>
+        </div>
+        <div style="width:1px;background:var(--sand);"></div>
+        <div style="flex:1.6;">
+          <div class="eyebrow" style="color:var(--ink-3);">Venue</div>
+          <div style="font-size:12.5px;font-weight:700;margin-top:3px;">Meridian PAC</div>
+          <a class="seeall" href="#" style="font-size:11px;">Get directions &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NOTES FROM THE DIRECTOR ============ -->
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Notes from Sam</div>
+    <div class="softcard" style="margin-top:10px;padding:14px 16px;">
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.55;">$85 entry fee, due at registration. Dress code is competition attire, no street shoes backstage. Parking is in the Meridian garage across the street &mdash; the surface lot fills up fast. Load-in for Take Flight and Solo &mdash; Lila P. starts at 6:00 AM; Duo &mdash; Ren &amp; Sofia's load-in time follows once the host confirms it.</div>
+      <div style="font-size:10.5px;color:var(--ink-3);margin-top:10px;">Added when the competition was set up &middot; edited by Sam 2 days ago</div>
+    </div>
+  </div>
+
+  <!-- ============ OUR COMP TEAMS HERE ============ -->
+  <div class="pad" style="margin-top:24px;">
+    <div class="eyebrow">Our Comp Teams here &middot; 3</div>
+    <div class="softcard" style="margin-top:10px;padding:2px 16px;">
+      <div class="hrow">
+        <div class="avatar" style="background:var(--sand);">TF</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Take Flight</div>
+          <div style="font-size:11px;color:var(--ink-3);">Group &middot; Level 2 &middot; Aditi is cast</div>
+        </div>
+        <span class="timepill">7:15 AM</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="hrow">
+        <div class="avatar" style="background:var(--sand);">LP</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Solo &mdash; Lila P.</div>
+          <div style="font-size:11px;color:var(--ink-3);">Solo &middot; Level 3</div>
+        </div>
+        <span class="timepill">7:30 AM</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="hrow">
+        <div class="avatar" style="background:var(--signal);color:var(--signal-ink);">RS</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Duo &mdash; Ren &amp; Sofia</div>
+          <div style="font-size:11px;color:var(--ink-3);">Duo &middot; Level 3</div>
+        </div>
+        <span class="timepill tbd">Not set yet</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:8px;">Tap a Comp Team to open its own Home, Schedule, roster &amp; rehearsals &mdash; this page only covers what's specific to the event itself.</div>
+  </div>
+
+  <!-- ============ UPDATES — read-only feed, event-scoped ============ -->
+  <div class="pad" style="margin-top:24px;">
+    <div class="eyebrow">Updates</div>
+    <div class="softcard" style="margin-top:10px;padding:2px 16px;">
+      <div class="hrow" style="align-items:flex-start;">
+        <div class="avatar" style="background:#3a322d;color:var(--band-ink);flex-shrink:0;">SD</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12.5px;font-weight:700;">Sam Diaz <span style="font-weight:600;color:var(--ink-3);">&middot; Director</span></div>
+          <div style="font-size:13px;color:var(--ink-2);margin-top:2px;line-height:1.45;">Parking map is up in Media below &mdash; garage entrance is on Elm, not the main street.</div>
+          <div style="font-size:10.5px;color:var(--ink-3);margin-top:4px;">2 days ago</div>
+        </div>
+      </div>
+      <div class="hrow" style="align-items:flex-start;">
+        <div class="avatar" style="background:#3a322d;color:var(--band-ink);flex-shrink:0;">MB</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12.5px;font-weight:700;">Marcus Bell <span style="font-weight:600;color:var(--ink-3);">&middot; Choreographer</span></div>
+          <div style="font-size:13px;color:var(--ink-2);margin-top:2px;line-height:1.45;">Take Flight and Solo &mdash; Lila P.'s load-in is confirmed for 6:00 AM. Still waiting on a slot for the Duo.</div>
+          <div style="font-size:10.5px;color:var(--ink-3);margin-top:4px;">5 days ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MEDIA — event-scoped documents/photos ============ -->
+  <div class="pad" style="margin-top:24px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;">
+      <div class="eyebrow">Photos, video &amp; documents</div>
+      <a class="seeall" href="#">See all &rarr;</a>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:11px;overflow-x:auto;padding:2px 2px 6px;">
+      <div style="flex:0 0 128px;">
+        <div style="height:160px;border-radius:16px;box-shadow:var(--shadow-sm);background:var(--surface);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;">
+          <svg style="width:26px;height:26px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:7px;">Venue map &amp; parking</div>
+      </div>
+      <div style="flex:0 0 128px;">
+        <div style="height:160px;border-radius:16px;box-shadow:var(--shadow-sm);background:var(--surface);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;">
+          <svg style="width:26px;height:26px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+        </div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:7px;">Full-day run order</div>
+      </div>
+      <div style="flex:0 0 128px;">
+        <div style="position:relative;height:160px;border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);">
+          <img src="photo-comp.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;">
+          <div style="position:absolute;top:8px;left:8px;background:var(--surface);color:var(--ink);font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;">PHOTO</div>
+        </div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:7px;">Lobby &amp; check-in, last year</div>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:var(--ink-3);margin-top:2px;">Posted here by Sam or Marcus, about the event itself &mdash; each Comp Team's own rehearsal footage and costume photos still live on its own Media tab.</div>
+  </div>
+
+  <div class="pad" style="margin-top:auto;padding-top:26px;padding-bottom:20px;">
+    <div style="font-size:11px;color:var(--ink-3);text-align:center;line-height:1.5;">Questions about a call time or rehearsal? Message the Comp Team directly &mdash; this page is for what's shared across everyone competing here.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

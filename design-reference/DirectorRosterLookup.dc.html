@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .chev{width:15px;height:15px;color:var(--ink-3);flex-shrink:0;}
+  .hrow{display:flex;align-items:center;gap:12px;padding:13px 0;}
+  .hrow + .hrow{border-top:1px solid var(--hairline);}
+  .chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:10.5px;font-weight:600;flex-shrink:0;}
+  .chip.instr{background:var(--band);color:var(--signal);}
+  .filterpill{padding:7px 14px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:12px;font-weight:700;white-space:nowrap;}
+  .filterpill.on{background:var(--ink);color:var(--paper);}
+  .searchbar{display:flex;align-items:center;gap:9px;background:var(--sand);border-radius:12px;padding:11px 14px;}
+
+  .screen{width:390px;min-height:1500px;background:var(--paper);display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <div style="padding:16px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--hairline);">
+    <svg class="icon" style="color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    <div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:16px;">Roster &amp; directory</div>
+      <div style="font-size:11px;color:var(--ink-3);margin-top:1px;">142 confirmed people</div>
+    </div>
+  </div>
+
+  <div class="pad" style="background:var(--band);padding-top:9px;padding-bottom:9px;display:flex;align-items:center;gap:7px;">
+    <span class="eyebrow" style="color:var(--band-ink-2);">STAGE, WARMED &middot; V2</span>
+    <span style="font-size:10.5px;color:var(--band-ink-2);">New &mdash; condensed mobile counterpart to DirectorRoster.dc.html, for looking someone up on the studio floor. Same search + role filter, same data; editing a record still opens the web console.</span>
+  </div>
+
+  <div class="pad" style="padding-top:16px;">
+    <div class="searchbar">
+      <svg class="icon" style="width:16px;height:16px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span style="font-size:13px;color:var(--ink-3);">Search by name&hellip;</span>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:14px;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;">
+    <span class="filterpill on">All</span>
+    <span class="filterpill">Directors</span>
+    <span class="filterpill">Instructors</span>
+    <span class="filterpill">Parents</span>
+    <span class="filterpill">Dancers</span>
+  </div>
+
+  <div class="pad" style="margin-top:18px;padding-bottom:24px;">
+    <div class="card" style="padding:2px 16px;">
+
+      <div class="hrow">
+        <div class="avatar" style="background:var(--band);color:var(--band-ink);">SD</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Sam Diaz <span style="font-weight:600;color:var(--ink-3);font-size:11.5px;">(you)</span></div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Runs the studio &middot; full access everywhere</div>
+        </div>
+        <span class="chip">Director</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">MB</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Marcus Bell</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Teaches Senior Team &middot; choreographs Take Flight, Solo &mdash; Lila P., Duo &mdash; Ren &amp; Sofia</div>
+        </div>
+        <span class="chip instr">Instructor</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">JT</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Jamie Torres</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Teaches Junior Comp Team</div>
+        </div>
+        <span class="chip instr">Instructor</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">PS</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Priya Shah</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Guardian of Aditi Shah</div>
+        </div>
+        <span class="chip">Parent</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">AS</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Aditi Shah</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Jazz II &middot; Take Flight</div>
+        </div>
+        <span class="chip">Dancer</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">RO</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Ren Ortiz</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Senior Team &middot; Duo &mdash; Ren &amp; Sofia</div>
+        </div>
+        <span class="chip">Dancer</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">SD</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Sofia Delgado</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Junior Comp Team &middot; Duo &mdash; Ren &amp; Sofia</div>
+        </div>
+        <span class="chip">Dancer</span>
+      </div>
+
+      <div class="hrow">
+        <div class="avatar">EC</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Elena Cho</div>
+          <div style="font-size:11.5px;color:var(--ink-3);margin-top:1px;">Contemporary I &middot; Take Flight</div>
+        </div>
+        <span class="chip">Dancer</span>
+      </div>
+
+    </div>
+    <div style="font-size:11px;color:var(--ink-3);margin-top:14px;line-height:1.5;">Tapping a row opens that person's record &mdash; contact info, guardian links, every Team/Comp Team they're on &mdash; on <a href="#">PersonDetail.dc.html</a>, the web console; not built as its own mobile screen, same as DirectorRoster.dc.html's desktop version.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

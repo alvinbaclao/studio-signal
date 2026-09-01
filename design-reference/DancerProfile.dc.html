@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .avatar.lg{width:52px;height:52px;font-size:16px;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .chip{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:11.5px;font-weight:600;}
+  .kvlabel{font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+  .field{background:var(--sand);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .pencil{width:14px;height:14px;color:var(--ink-3);flex-shrink:0;}
+  .row{display:flex;align-items:center;gap:13px;padding:14px 0;}
+  .row + .row{border-top:1px solid var(--hairline);}
+  .chev{width:16px;height:16px;color:var(--ink-3);flex-shrink:0;}
+  .toggle{width:38px;height:22px;border-radius:999px;background:var(--hairline);position:relative;flex-shrink:0;}
+  .toggle.on{background:var(--signal);}
+  .toggle .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .toggle.on .knob{left:18px;}
+
+  .screen{width:390px;min-height:1300px;background:var(--paper);display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <div style="padding:16px 20px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--hairline);">
+    <svg class="icon" style="color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:16px;">Aditi Shah</div>
+  </div>
+
+  <div class="pad" style="background:var(--band);padding-top:9px;padding-bottom:9px;display:flex;align-items:center;gap:7px;">
+    <span class="eyebrow" style="color:var(--band-ink-2);">STAGE, WARMED &middot; V2</span>
+    <span style="font-size:10.5px;color:var(--band-ink-2);">New &mdash; the destination behind the inert &ldquo;Aditi Shah &middot; Your dancer&rdquo; row on ProfileAccount.dc.html. Parent-facing counterpart to PersonDetail.dc.html (the Director's admin view of the same person): same profile facts, no Deactivate control, and media consent is directly editable here since Priya is the guardian who sets it. Prototyped for Priya Shah viewing Aditi.</span>
+  </div>
+
+  <div class="pad" style="padding-top:20px;display:flex;align-items:center;gap:14px;">
+    <div class="avatar lg" style="background:linear-gradient(155deg,#8fbf9b,#3f6b4d);color:#fff;">AS</div>
+    <div>
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div style="font-size:17px;font-weight:700;">Aditi Shah</div>
+        <span class="chip">Dancer</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:3px;">Jazz II &middot; Take Flight</div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Profile</div>
+    <div class="card" style="margin-top:10px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px;">
+
+      <div>
+        <div class="kvlabel">Date of birth</div>
+        <div class="field">
+          <span>Mar 9, 2016 &middot; 10 yrs</span>
+          <svg class="pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+        </div>
+      </div>
+
+      <div>
+        <div class="kvlabel">Height</div>
+        <div class="field">
+          <span style="color:var(--ink-3);">Not provided</span>
+          <svg class="pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+        </div>
+      </div>
+
+      <div>
+        <div class="kvlabel">Dance styles</div>
+        <div class="field" style="background:var(--paper);border:1px solid var(--hairline);">
+          <span>Jazz, contemporary</span>
+        </div>
+        <div style="font-size:10.5px;color:var(--ink-3);margin-top:6px;line-height:1.4;">Follows Team &amp; Comp Team placement &mdash; message your Director to change this.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:16px;">
+    <div class="card" style="padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;">
+      <div>
+        <div style="font-size:13.5px;font-weight:700;">Media consent</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:3px;max-width:250px;line-height:1.4;">Ok to appear in Studio &amp; Team photos/video posted in the app. You're Aditi's guardian, so this is yours to set.</div>
+      </div>
+      <div class="toggle on"><div class="knob"></div></div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <div class="eyebrow">Teams &amp; Comp Teams</div>
+    <div class="card" style="margin-top:10px;padding:2px 18px;">
+      <div class="row">
+        <div class="avatar" style="background:linear-gradient(155deg,#f4b942,#8a5c00);color:#fff;">JZ</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Jazz II</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:1px;">Team &middot; Level 2</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="avatar" style="background:linear-gradient(155deg,#c98fa8,#6b3350);color:#fff;">TF</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13.5px;font-weight:700;">Take Flight</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:1px;">Comp Team &middot; Group &middot; entered in Regional Classic 2027</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:20px;padding-bottom:26px;">
+    <div style="font-size:11px;color:var(--ink-3);line-height:1.55;">Team placement, join codes, and removing Aditi from the roster all stay with your Director &mdash; message them from her Guardian card if something needs to change there.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

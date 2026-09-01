@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --busy:#a33a2e;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;} a:hover{color:var(--ink);}
+  .pad{padding-left:20px;padding-right:20px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+  .icon{width:18px;height:18px;flex-shrink:0;}
+  .stamp{font-weight:700;font-size:9.5px;padding:3px 9px;border-radius:999px;background:var(--band);color:var(--signal);letter-spacing:.04em;}
+  .thumb{width:100%;height:150px;border-radius:12px;background:var(--sand);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-top:11px;}
+  .thumb .play{width:36px;height:36px;border-radius:50%;background:rgba(28,23,20,.72);display:flex;align-items:center;justify-content:center;}
+  .thumb .play svg{width:14px;height:14px;color:#fff;}
+  .react{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--sand);font-size:12px;font-weight:700;color:var(--ink-2);}
+  .attach{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border-radius:11px;background:var(--sand);font-size:12.5px;font-weight:600;color:var(--ink-2);margin-top:11px;}
+
+  .subnav{display:flex;gap:22px;padding:0 20px;border-bottom:1px solid var(--hairline);overflow-x:auto;}
+  .subnavitem{padding:12px 0 10px;font-size:13px;font-weight:600;color:var(--ink-3);white-space:nowrap;border-bottom:2.5px solid transparent;}
+  .subnavitem.on{color:var(--ink);border-color:var(--ink);}
+
+  .screen{width:390px;min-height:1560px;background:var(--paper);display:flex;flex-direction:column;position:relative;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <div style="padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg class="icon" style="color:var(--ink-2);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      <div>
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:16px;">Studio</div>
+        <div style="font-size:11px;color:var(--ink-3);margin-top:1px;">Riverside Dance Co. &middot; everyone</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:7px 20px;background:var(--signal-tint);display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--hairline);">
+    <span style="font-size:11px;line-height:1;">🔑</span>
+    <span style="font-size:10px;font-weight:700;color:var(--signal-ink);letter-spacing:.01em;">Director/Instructor tools live on this screen — gated by role, not a separate screen</span>
+  </div>
+
+  <div class="subnav">
+    <div class="subnavitem">Home</div>
+    <div class="subnavitem">Schedule</div>
+    <div class="subnavitem on">Bulletin</div>
+    <div class="subnavitem">Media</div>
+    <div class="subnavitem">Essentials</div>
+  </div>
+
+  <div class="pad" style="background:var(--band);padding-top:9px;padding-bottom:9px;display:flex;align-items:center;gap:7px;">
+    <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--band-ink-2);font-weight:600;">STAGE, WARMED &middot; V2</span>
+    <span style="font-size:10.5px;color:var(--band-ink-2);">Bulletin &middot; reader view &mdash; Important flag, per-person &ldquo;seen by,&rdquo; one-tap reactions, no comment threads. The &ldquo;+&rdquo; opens <a href="#">BulletinComposer.dc.html</a>, pre-scoped to Studio &middot; Bulletin.</span>
+  </div>
+
+  <div class="pad" style="margin-top:18px;display:flex;flex-direction:column;gap:16px;">
+
+    <div class="card" style="border-color:var(--signal-deep);border-width:1.5px;overflow:hidden;">
+      <div style="background:var(--signal-tint);padding:12px 16px;display:flex;align-items:center;gap:8px;">
+        <span class="stamp">IMPORTANT</span>
+      </div>
+      <div style="padding:14px 16px 16px;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <div class="avatar">RD</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;">Riverside Dance Co.</div>
+            <div style="font-size:11px;color:var(--ink-3);">Posted 2h ago</div>
+          </div>
+        </div>
+        <div style="font-size:13.5px;line-height:1.55;margin-top:11px;">Recital packing list is up &mdash; please read before Saturday&rsquo;s dress rehearsal. Shoes, hair kit, and call-time details are all in there.</div>
+        <a class="attach" href="#">
+          <svg class="icon" style="width:15px;height:15px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+          Recital Packing List
+        </a>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid var(--hairline);">
+          <span class="react">&#128077; 34</span>
+          <a href="#" style="font-size:11.5px;color:var(--ink-3);font-weight:600;">Seen by 42 of 58 &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px 16px 16px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div class="avatar">RD</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;">Riverside Dance Co.</div>
+          <div style="font-size:11px;color:var(--ink-3);">Posted yesterday</div>
+        </div>
+      </div>
+      <div style="font-size:13.5px;line-height:1.55;margin-top:11px;">Fall photos from Picture Day are up in Media &#128248;</div>
+      <div class="thumb">
+        <div class="play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid var(--hairline);">
+        <span class="react">&#10084;&#65039; 21</span>
+        <a href="#" style="font-size:11.5px;color:var(--ink-3);font-weight:600;">Seen by 51 of 58 &rarr;</a>
+      </div>
+    </div>
+
+    <div class="card" style="padding:14px 16px 16px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <div class="avatar">RD</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;">Riverside Dance Co.</div>
+          <div style="font-size:11px;color:var(--ink-3);">Posted 3 days ago</div>
+        </div>
+      </div>
+      <div style="font-size:13.5px;line-height:1.55;margin-top:11px;">Studio office is closed Labor Day, Sep 1 &mdash; no classes that evening. See you Tuesday!</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid var(--hairline);">
+        <span class="react">&#128077; 12</span>
+        <a href="#" style="font-size:11.5px;color:var(--ink-3);font-weight:600;">Seen by 58 of 58 &rarr;</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position:absolute;right:20px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+    <div style="font-size:10px;color:var(--ink-3);background:var(--paper);padding:3px 8px;border-radius:8px;border:1px dashed var(--hairline);">Director / Instructor only</div>
+    <div style="width:52px;height:52px;border-radius:50%;background:var(--signal);color:var(--signal-ink);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(28,23,20,.18);">
+      <svg style="width:22px;height:22px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

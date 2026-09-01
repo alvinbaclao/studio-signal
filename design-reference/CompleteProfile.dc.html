@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320; --band-line:#3a322d;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2; --signal-border:#f2e2bb;
+    --ok:#2c7449; --ok-tint:#e3f1e7; --ok-border:#c6e0d0;
+    --wait:#8a5c00; --wait-tint:#fdf0d2; --wait-border:#f2e2bb;
+    --busy:#a33a2e; --busy-tint:#f9e5e1; --busy-border:#efcdc6;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .eyebrow-band{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--band-ink-2);font-weight:600;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .avatar.sm{width:32px;height:32px;font-size:11.5px;}
+  .avatar.dark{background:#3a322d;color:var(--band-ink);}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:12.5px;font-weight:600;white-space:nowrap;}
+  .chip.sm{padding:4px 11px;font-size:11.5px;}
+  .chip.sel{background:var(--ink);color:var(--paper);}
+  .timelead{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-variant-numeric:tabular-nums;font-size:25px;width:74px;flex-shrink:0;line-height:1.1;}
+  .timelead.sm{font-size:23px;width:72px;}
+  .hrow{display:flex;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--hairline);}
+  .hrow:last-child{border-bottom:none;}
+  .badge{min-width:19px;height:19px;padding:0 6px;border-radius:999px;background:var(--signal-deep);color:#fff;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .badge.onband{background:var(--signal);color:var(--signal-ink);}
+  .btnp{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 20px;border-radius:12px;background:var(--signal);color:var(--signal-ink);font-size:14px;font-weight:700;}
+  .btns{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 20px;border-radius:12px;background:var(--sand);color:var(--ink);font-size:14px;font-weight:600;}
+  .field{background:var(--sand);border-radius:12px;padding:12px 15px;font-size:14px;color:var(--ink);}
+  .field .ph{color:var(--ink-3);}
+  .label{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:7px;display:block;}
+  .state{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:700;}
+  .state.ok{background:var(--ok-tint);color:var(--ok);border:1px solid var(--ok-border);}
+  .state.wait{background:var(--wait-tint);color:var(--wait);border:1px solid var(--wait-border);}
+  .state.busy{background:var(--busy-tint);color:var(--busy);border:1px solid var(--busy-border);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex-shrink:0;}
+  .dot.sig{background:var(--signal-deep);}
+  .icon{width:17px;height:17px;flex-shrink:0;}
+  .stamp{font-weight:700;font-size:10px;padding:4px 10px;border-radius:999px;background:var(--band);color:var(--signal);letter-spacing:.02em;}
+  .note{font-size:10.5px;color:var(--ink-3);}
+
+  .screen{width:390px;min-height:940px;background:var(--paper);display:flex;flex-direction:column;padding-bottom:8px;}
+</style>
+</helmet>
+
+<div class="screen">
+  <div class="pad" style="padding-top:10px;display:flex;align-items:center;gap:7px;">
+    <span class="stamp">STAGE, WARMED</span>
+    <span class="note">Complete your profile &middot; parent branch &mdash; consent no longer asked for</span>
+  </div>
+
+  <div class="pad" style="padding-top:18px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="flex:1;height:4px;border-radius:2px;background:var(--ink);"></span>
+      <span style="flex:1;height:4px;border-radius:2px;background:var(--hairline);"></span>
+    </div>
+    <div style="font-size:11.5px;color:var(--ink-3);margin-top:9px;">Step 1 of 2 &middot; About you</div>
+    <h2 style="font-size:23px;margin-top:12px;letter-spacing:-.01em;line-height:1.25;">Welcome to Riverside Dance Co.</h2>
+    <p style="font-size:13.5px;color:var(--ink-2);margin:9px 0 0;line-height:1.6;">Sam invited you as a parent. Tell us about you, then add each dancer &mdash; you&rsquo;ll manage their profile from your own account.</p>
+  </div>
+
+  <div class="pad" style="margin-top:24px;display:flex;flex-direction:column;gap:16px;">
+    <div>
+      <span class="label">Your name</span>
+      <div class="field">Maria Walsh</div>
+    </div>
+    <div>
+      <span class="label">Phone</span>
+      <div class="field"><span class="ph">(555) 000-0000</span></div>
+    </div>
+    <div>
+      <span class="label">Email</span>
+      <div class="field" style="color:var(--ink-3);">maria.walsh@example.com</div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:26px;">
+    <div class="eyebrow">Your dancers</div>
+
+    <div class="card" style="margin-top:11px;padding:16px 18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="avatar">EW</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14.5px;font-weight:600;">Emma Walsh</div>
+          <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;">Date of birth set &middot; contemporary, jazz</div>
+        </div>
+        <span class="state ok"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12l5 5L20 6"/></svg>Ready</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px;padding:16px 18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="avatar">NW</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14.5px;font-weight:600;">Noah Walsh</div>
+          <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;">Date of birth still needed</div>
+        </div>
+        <span class="state wait">Incomplete</span>
+      </div>
+    </div>
+
+    <div class="btns" style="margin-top:10px;width:100%;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add another dancer</div>
+  </div>
+
+  <div class="pad" style="margin-top:26px;">
+    <div style="background:var(--sand);border-radius:14px;padding:13px 16px;font-size:12.5px;color:var(--ink-2);line-height:1.55;">
+      Dancers under 18 don&rsquo;t get their own login &mdash; you see and manage everything on their behalf.
+      Photo and video consent comes from the form you signed at enrolment, so there is nothing to set here.
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:auto;padding-top:26px;padding-bottom:16px;display:flex;gap:10px;">
+    <div class="btns" style="flex:0 0 auto;">Back</div>
+    <div class="btnp" style="flex:1;">Continue</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --wait:#8a5c00; --wait-tint:#fdf0d2; --wait-border:#f2e2bb;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);} a:hover{color:var(--ink);}
+  .pad{padding-left:20px;padding-right:20px;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;}
+  .field{background:var(--sand);border-radius:12px;padding:12px 15px;font-size:14px;color:var(--ink);}
+  .field .ph{color:var(--ink-3);}
+  .label{font-size:12px;font-weight:700;color:var(--ink-2);margin-bottom:7px;display:block;}
+  .btnp{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-radius:12px;background:var(--signal);color:var(--signal-ink);font-size:14.5px;font-weight:700;}
+  .btns{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-radius:12px;background:var(--sand);color:var(--ink);font-size:14.5px;font-weight:600;}
+  .stamp{font-weight:700;font-size:10px;padding:4px 10px;border-radius:999px;background:var(--band);color:var(--signal);letter-spacing:.02em;}
+  .note{font-size:10.5px;color:var(--ink-3);}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .chip{display:inline-flex;align-items:center;padding:7px 13px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:12.5px;font-weight:600;}
+  .chip.sel{background:var(--ink);color:var(--paper);}
+  .icon{width:17px;height:17px;flex-shrink:0;}
+
+  .screen{width:390px;min-height:1020px;background:var(--paper);display:flex;flex-direction:column;padding-bottom:16px;}
+</style>
+</helmet>
+
+<div class="screen">
+  <div class="pad" style="padding-top:10px;display:flex;align-items:center;gap:7px;">
+    <span class="stamp">STAGE, WARMED &middot; V2</span>
+    <span class="note">Register dancers &middot; TRUE empty state &mdash; generic studio code, nothing known yet</span>
+  </div>
+
+  <div class="pad" style="padding-top:18px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="flex:1;height:4px;border-radius:2px;background:var(--ink);"></span>
+      <span style="flex:1;height:4px;border-radius:2px;background:var(--ink);"></span>
+      <span style="flex:1;height:4px;border-radius:2px;background:var(--hairline);"></span>
+    </div>
+    <div style="font-size:11.5px;color:var(--ink-3);margin-top:9px;">Step 2 of 3 &middot; Your dancers</div>
+    <h2 style="font-size:23px;margin-top:12px;letter-spacing:-.01em;">Add your first dancer</h2>
+    <p style="font-size:13.5px;color:var(--ink-2);margin:9px 0 0;line-height:1.6;">This code doesn&rsquo;t know who you are yet &mdash; tell us about your dancer below. You can add more after this one.</p>
+  </div>
+
+  <div class="pad" style="margin-top:26px;">
+    <div class="eyebrow">Dancer 1</div>
+
+    <div class="card" style="margin-top:12px;padding:20px 20px 22px;display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <span class="label">Dancer&rsquo;s name</span>
+        <div class="field"><span class="ph">First and last name</span></div>
+      </div>
+      <div>
+        <span class="label">Date of birth</span>
+        <div class="field"><span class="ph">MM / DD / YYYY</span></div>
+      </div>
+      <div>
+        <span class="label">Dance styles</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="chip sel">Contemporary</span><span class="chip sel">Jazz</span><span class="chip">Tap</span><span class="chip">Ballet</span><span class="chip">Hip hop</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btnp" style="margin-top:14px;width:100%;">Add this dancer</div>
+  </div>
+
+  <div class="pad" style="margin-top:22px;">
+    <div style="font-size:11.5px;color:var(--ink-3);line-height:1.55;">Once you&rsquo;ve added at least one dancer, you can add more or move on &mdash; nothing here is submitted for review until you choose to.</div>
+  </div>
+
+  <div class="pad" style="margin-top:auto;padding-top:26px;">
+    <div class="btns" style="width:100%;">Back</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

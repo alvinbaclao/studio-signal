@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700;6..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00;
+    --shadow: 0 -8px 30px -12px rgba(44,32,12,.28);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:rgba(28,23,20,.4);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  .pad{padding-left:20px;padding-right:20px;}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:700;}
+  .role-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .role-dot.instr{background:var(--band);box-shadow:0 0 0 2px var(--signal);}
+  .role-dot.parent{background:var(--surface);box-shadow:0 0 0 2px var(--ink-3);}
+  .frow{display:flex;align-items:center;gap:12px;padding:12px 0;}
+  .frow + .frow{border-top:1px solid var(--sand);}
+  .cb{width:21px;height:21px;border-radius:6px;border:1.5px solid var(--hairline);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .cb.checked{background:var(--band);border-color:var(--band);}
+  .cb.checked svg{width:12px;height:12px;color:var(--signal);}
+
+  .screen{width:390px;min-height:844px;background:transparent;display:flex;flex-direction:column;justify-content:flex-end;}
+  .sheet{background:var(--paper);border-radius:22px 22px 0 0;box-shadow:var(--shadow);max-height:80%;display:flex;flex-direction:column;}
+</style>
+</helmet>
+
+<div class="screen">
+  <div class="sheet">
+
+    <div style="display:flex;justify-content:center;padding-top:10px;">
+      <div style="width:36px;height:4px;border-radius:99px;background:var(--hairline);"></div>
+    </div>
+
+    <div class="pad" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;">
+      <h2 style="font-size:17px;">Filter schedule</h2>
+      <span style="font-size:12.5px;font-weight:700;color:var(--signal-deep);">Clear</span>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding-bottom:6px;">
+
+      <div class="pad" style="margin-top:18px;">
+        <div class="eyebrow">Teaching</div>
+        <div style="margin-top:6px;">
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot instr"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">Jazz II</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pad" style="margin-top:20px;padding-bottom:18px;">
+        <div class="eyebrow">Aditi&rsquo;s dances &middot; 8</div>
+        <div style="margin-top:6px;">
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">Jazz II</div>
+          </div>
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">Contemporary Solo</div>
+          </div>
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">Take Flight &middot; Group</div>
+          </div>
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">Winter Showcase &middot; Duet</div>
+          </div>
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">&ldquo;Autumn Leaves&rdquo; &middot; Lyrical Trio</div>
+          </div>
+          <div class="frow">
+            <div class="cb checked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;">Tap III</div>
+          </div>
+          <div class="frow">
+            <div class="cb"></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;color:var(--ink-2);">Ballet Foundations</div>
+          </div>
+          <div class="frow">
+            <div class="cb"></div>
+            <span class="role-dot parent"></span>
+            <div style="flex:1;font-size:13.5px;font-weight:600;color:var(--ink-2);">Spring Gala &middot; Group Number</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pad" style="padding-top:12px;padding-bottom:24px;border-top:1px solid var(--hairline);">
+      <div style="background:var(--band);color:var(--signal);text-align:center;padding:14px;border-radius:13px;font-weight:700;font-size:13.5px;">Apply filters &middot; 6 selected</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+    --busy:#a33a2e; --busy-tint:#f9e5e1; --busy-border:#efcdc6;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;} a:hover{color:var(--ink);}
+  .screen{width:1440px;min-height:1040px;display:flex;background:var(--paper);}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+  .chip{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:11.5px;font-weight:600;}
+  .icon{width:16px;height:16px;flex-shrink:0;}
+  .railitem{display:flex;align-items:center;gap:11px;padding:10px 14px;border-radius:10px;color:var(--band-ink-2);font-size:13.5px;font-weight:600;}
+  .railitem.on{background:#312923;color:var(--band-ink);}
+  .btnp{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:9px;background:var(--signal);color:var(--signal-ink);font-size:12.5px;font-weight:700;white-space:nowrap;}
+  .btnghost{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:9px;background:var(--sand);color:var(--ink);font-size:12.5px;font-weight:600;white-space:nowrap;}
+  .colhead{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:13px;padding:10px 0;text-align:center;border-bottom:1.5px solid var(--hairline);}
+  .track{position:relative;height:620px;border-right:1px solid var(--hairline);}
+  .block{position:absolute;left:6px;right:6px;border-radius:9px;padding:7px 9px;font-size:11px;line-height:1.35;overflow:hidden;}
+  .block .t{font-weight:700;}
+  .hourline{position:absolute;left:0;right:0;border-top:1px dashed var(--hairline);font-size:9.5px;color:var(--ink-3);padding-left:3px;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <!-- ============ DARK LEFT RAIL ============ -->
+  <div style="width:232px;flex-shrink:0;background:var(--band);padding:22px 14px;display:flex;flex-direction:column;gap:5px;">
+    <div style="display:flex;align-items:center;gap:9px;padding:0 8px 20px;">
+      <span style="width:9px;height:9px;border-radius:50%;background:var(--signal);"></span>
+      <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:15px;color:var(--band-ink);">Riverside Dance Co.</span>
+    </div>
+
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Home</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.4"/><path d="M2 20a7 7 0 0114 0M17 11a3 3 0 100-6M22 20a5.5 5.5 0 00-4-5.3"/></svg>Roster</div>
+    <div class="railitem on" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:11px;"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>Schedule</span>
+      <span style="min-width:19px;height:19px;padding:0 6px;border-radius:999px;background:var(--signal);color:var(--signal-ink);font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">1</span>
+    </div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 21h8M12 17v4M6 3h12v6a6 6 0 01-12 0z"/></svg>Competitions</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 01-9 8.4 8.5 8.5 0 01-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0121 11.5z"/></svg>Messages</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 006.6 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 13.9H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 8.6l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0110 4.6V3a2 2 0 114 0v.1a1.6 1.6 0 002.7 1.1l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 001.1 2.7H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg>Settings</div>
+
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid #312923;">
+      <div class="avatar" style="background:#3a322d;color:var(--band-ink);">SD</div>
+      <div style="min-width:0;">
+        <div style="font-size:13px;color:var(--band-ink);font-weight:600;">Sam Diaz</div>
+        <div style="font-size:11px;color:var(--band-ink-2);">Director</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONTENT ============ -->
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+
+    <div style="padding:18px 34px 0;display:flex;align-items:center;gap:8px;">
+      <span style="font-weight:700;font-size:10px;padding:4px 10px;border-radius:999px;background:var(--band);color:var(--signal);letter-spacing:.02em;">STAGE, WARMED &middot; V2</span>
+      <span style="font-size:10.5px;color:var(--ink-3);">Studio Calendar &mdash; every space, one day, so a room conflict is visible before it's a surprise</span>
+    </div>
+
+    <div style="padding:22px 34px 0;display:flex;align-items:baseline;justify-content:space-between;">
+      <h2 style="font-size:24px;letter-spacing:-.01em;">Studio Calendar</h2>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <svg style="width:18px;height:18px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:14px;">Thursday, Sep 3</span>
+          <svg style="width:18px;height:18px;color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+        <span class="btnghost">Request studio time&hellip;</span>
+      </div>
+    </div>
+
+    <!-- ============ PENDING REQUEST BANNER ============ -->
+    <div style="margin:16px 34px 0;background:var(--band);border-radius:16px;padding:15px 20px;display:flex;align-items:center;gap:14px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--signal);flex-shrink:0;"></span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;color:var(--band-ink);font-weight:600;">Jamie Torres requests Studio B, Thu 7&ndash;9 PM &mdash; conflicts with Senior Team&rsquo;s regular class</div>
+        <div style="font-size:11.5px;color:var(--band-ink-2);margin-top:2px;">Extra rehearsal before Regionals &middot; requested 2 days ago</div>
+      </div>
+      <span class="btnp">Review request</span>
+    </div>
+
+    <!-- ============ DAY-BY-SPACE GRID ============ -->
+    <div style="padding:22px 34px 30px;">
+      <div style="display:grid;grid-template-columns:56px repeat(4,1fr);">
+        <div></div>
+        <div class="colhead">Studio A</div>
+        <div class="colhead">Studio B</div>
+        <div class="colhead">Studio C</div>
+        <div class="colhead">Lobby</div>
+      </div>
+      <div style="display:grid;grid-template-columns:56px repeat(4,1fr);">
+
+        <!-- hour labels -->
+        <div style="position:relative;height:620px;">
+          <div style="position:absolute;top:0;font-size:10px;color:var(--ink-3);">4:00p</div>
+          <div style="position:absolute;top:124px;font-size:10px;color:var(--ink-3);">5:00p</div>
+          <div style="position:absolute;top:248px;font-size:10px;color:var(--ink-3);">6:00p</div>
+          <div style="position:absolute;top:372px;font-size:10px;color:var(--ink-3);">7:00p</div>
+          <div style="position:absolute;top:496px;font-size:10px;color:var(--ink-3);">8:00p</div>
+          <div style="position:absolute;top:610px;font-size:10px;color:var(--ink-3);">9:00p</div>
+        </div>
+
+        <!-- Studio A -->
+        <div class="track">
+          <div class="hourline" style="top:124px;"></div><div class="hourline" style="top:248px;"></div><div class="hourline" style="top:372px;"></div><div class="hourline" style="top:496px;"></div>
+          <div class="block" style="top:248px;height:124px;background:var(--sand);color:var(--ink);">
+            <div class="t">Contemporary I</div>Class &middot; Maya Ruiz's instructor
+          </div>
+        </div>
+
+        <!-- Studio B — the conflict -->
+        <div class="track">
+          <div class="hourline" style="top:124px;"></div><div class="hourline" style="top:248px;"></div><div class="hourline" style="top:372px;"></div><div class="hourline" style="top:496px;"></div>
+          <div class="block" style="top:0;height:124px;background:var(--sand);color:var(--ink);">
+            <div class="t">Jazz II</div>Rehearsal &middot; Priya Shah
+          </div>
+          <div class="block" style="top:372px;height:124px;background:var(--surface);border:1.5px solid var(--busy-border);color:var(--ink);">
+            <div class="t">Senior Team</div>Class &middot; Marcus Bell
+          </div>
+          <div class="block" style="top:372px;height:124px;left:52%;background:var(--signal-tint);border:1.5px dashed var(--signal-deep);color:var(--signal-ink);">
+            <div class="t">Pending &middot; Jamie Torres</div>Studio time request
+          </div>
+        </div>
+
+        <!-- Studio C -->
+        <div class="track">
+          <div class="hourline" style="top:124px;"></div><div class="hourline" style="top:248px;"></div><div class="hourline" style="top:372px;"></div><div class="hourline" style="top:496px;"></div>
+          <div class="block" style="top:496px;height:100px;background:var(--sand);color:var(--ink);">
+            <div class="t">Private coaching</div>Aditi Shah &middot; solo prep
+          </div>
+        </div>
+
+        <!-- Lobby -->
+        <div class="track" style="border-right:none;">
+          <div class="hourline" style="top:124px;"></div><div class="hourline" style="top:248px;"></div><div class="hourline" style="top:372px;"></div><div class="hourline" style="top:496px;"></div>
+        </div>
+
+      </div>
+      <div style="margin-top:16px;display:flex;align-items:center;gap:16px;font-size:11.5px;color:var(--ink-3);">
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--sand);"></span>Confirmed, regular</span>
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;border:1.5px solid var(--busy-border);"></span>Confirmed, has a conflict</span>
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--signal-tint);border:1.5px dashed var(--signal-deep);"></span>Pending studio time request</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@6..96,500;6..96,600;6..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf7f1; --surface:#ffffff; --sand:#f5eee4; --hairline:#e7dccd;
+    --band:#1c1714; --band-card:#2a2320;
+    --ink:#2f2925; --ink-2:#574e47; --ink-3:#6b615a;
+    --band-ink:#f8f4ee; --band-ink-2:#aaa094;
+    --signal:#ffc12b; --signal-ink:#5f4604; --signal-deep:#8a5c00; --signal-tint:#fdf0d2;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:"Instrument Sans",ui-sans-serif,sans-serif;color:var(--ink);}
+  h1,h2,h3{font-family:"Bricolage Grotesque",ui-sans-serif,sans-serif;margin:0;font-weight:600;}
+  a{color:var(--signal-deep);text-decoration:none;} a:hover{color:var(--ink);}
+  .screen{width:1440px;min-height:1160px;display:flex;background:var(--paper);}
+  .eyebrow{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-weight:600;}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--sand);color:var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .chip{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;background:var(--sand);color:var(--ink-2);font-size:11px;font-weight:600;flex-shrink:0;}
+  .chip.instr{background:var(--band);color:var(--signal);}
+  .icon{width:16px;height:16px;flex-shrink:0;}
+  .railitem{display:flex;align-items:center;gap:11px;padding:10px 14px;border-radius:10px;color:var(--band-ink-2);font-size:13.5px;font-weight:600;}
+  .railitem.on{background:#312923;color:var(--band-ink);}
+  .filterpill{padding:8px 15px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--ink-2);background:var(--sand);}
+  .filterpill.on{background:var(--band);color:var(--signal);}
+  .row{display:flex;align-items:center;gap:14px;padding:13px 6px;}
+  .row + .row{border-top:1px solid var(--hairline);}
+  .chev{width:15px;height:15px;color:var(--ink-3);flex-shrink:0;}
+</style>
+</helmet>
+
+<div class="screen">
+
+  <!-- ============ DARK LEFT RAIL ============ -->
+  <div style="width:232px;flex-shrink:0;background:var(--band);padding:22px 14px;display:flex;flex-direction:column;gap:5px;">
+    <div style="display:flex;align-items:center;gap:9px;padding:0 8px 20px;">
+      <span style="width:9px;height:9px;border-radius:50%;background:var(--signal);"></span>
+      <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:600;font-size:15px;color:var(--band-ink);">Riverside Dance Co.</span>
+    </div>
+
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Home</div>
+    <div class="railitem on"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.4"/><path d="M2 20a7 7 0 0114 0M17 11a3 3 0 100-6M22 20a5.5 5.5 0 00-4-5.3"/></svg>Roster</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>Schedule</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 21h8M12 17v4M6 3h12v6a6 6 0 01-12 0z"/></svg>Competitions</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 01-9 8.4 8.5 8.5 0 01-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0121 11.5z"/></svg>Messages</div>
+    <div class="railitem"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 006.6 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 13.9H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 8.6l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0110 4.6V3a2 2 0 114 0v.1a1.6 1.6 0 002.7 1.1l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 001.1 2.7H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg>Settings</div>
+
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid #312923;">
+      <div class="avatar" style="background:#3a322d;color:var(--band-ink);">SD</div>
+      <div style="min-width:0;">
+        <div style="font-size:13px;color:var(--band-ink);font-weight:600;">Sam Diaz</div>
+        <div style="font-size:11px;color:var(--band-ink-2);">Director</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONTENT ============ -->
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+
+    <div style="padding:18px 34px 0;display:flex;align-items:center;gap:8px;">
+      <span style="font-weight:700;font-size:10px;padding:4px 10px;border-radius:999px;background:var(--band);color:var(--signal);letter-spacing:.02em;">STAGE, WARMED &middot; V2</span>
+      <span style="font-size:10.5px;color:var(--ink-3);">New &mdash; the studio-wide people directory, separate from Teams &amp; Competitions (which indexes Teams/Comp Teams/Competitions, not people directly). Search by name, filter by role; each row shows what a person is actually on, not just their role label</span>
+    </div>
+
+    <div style="padding:22px 34px 0;">
+      <h2 style="font-size:24px;letter-spacing:-.01em;">Roster &amp; directory</h2>
+      <div style="font-size:12.5px;color:var(--ink-3);margin-top:4px;">142 confirmed people &middot; pending registrations live on their own queue &mdash; <a href="#">open Confirm queue &rarr;</a></div>
+    </div>
+
+    <div style="padding:20px 34px 0;display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;max-width:380px;display:flex;align-items:center;gap:9px;padding:11px 14px;border-radius:11px;background:var(--surface);border:1px solid var(--hairline);">
+        <svg class="icon" style="color:var(--ink-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span style="font-size:13px;color:var(--ink-3);">Search by name&hellip;</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="filterpill on">All</span>
+        <span class="filterpill">Directors</span>
+        <span class="filterpill">Instructors</span>
+        <span class="filterpill">Parents</span>
+        <span class="filterpill">Dancers</span>
+      </div>
+    </div>
+
+    <div style="padding:20px 34px 30px;max-width:920px;">
+      <div class="card" style="padding:2px 22px;">
+
+        <div class="row">
+          <div class="avatar" style="background:#3a322d;color:var(--band-ink);">SD</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Sam Diaz <span style="font-weight:600;color:var(--ink-3);font-size:12px;">(you)</span></div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Runs the studio &middot; full access everywhere</div>
+          </div>
+          <span class="chip instr">Director</span>
+        </div>
+
+        <div class="row">
+          <div class="avatar">MB</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Marcus Bell</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Jazz, contemporary, tap &middot; teaches Senior Team &middot; choreographs Take Flight, Solo &mdash; Lila P., Duo &mdash; Ren &amp; Sofia</div>
+          </div>
+          <span class="chip instr">Instructor</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <div class="row">
+          <div class="avatar">JT</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Jamie Torres</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Contemporary &middot; teaches Junior Comp Team</div>
+          </div>
+          <span class="chip instr">Instructor</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <div class="row">
+          <div class="avatar">PS</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Priya Shah</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Guardian of Aditi Shah</div>
+          </div>
+          <span class="chip">Parent</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <div class="row">
+          <div class="avatar">AS</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Aditi Shah</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Jazz II &middot; Take Flight</div>
+          </div>
+          <span class="chip">Dancer</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <div class="row">
+          <div class="avatar">RO</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Ren Ortiz</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Senior Team &middot; Duo &mdash; Ren &amp; Sofia</div>
+          </div>
+          <span class="chip">Dancer</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <div class="row">
+          <div class="avatar">SD</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Sofia Delgado</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Junior Comp Team &middot; Duo &mdash; Ren &amp; Sofia</div>
+          </div>
+          <span class="chip">Dancer</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        <div class="row">
+          <div class="avatar">EC</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;">Elena Cho</div>
+            <div style="font-size:12px;color:var(--ink-3);margin-top:2px;">Contemporary I &middot; Take Flight</div>
+          </div>
+          <span class="chip">Dancer</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+      </div>
+
+      <div style="font-size:11.5px;color:var(--ink-3);margin-top:14px;line-height:1.5;">Scale-tested pattern &mdash; a real 142-person roster loads the same list, just longer, with search doing the real work instead of scrolling. Tapping a row opens that person's own record on <a href="#">PersonDetail.dc.html</a> (contact info, guardian links, every Team/Comp Team they're on) &mdash; prototyped for Aditi Shah; any other row opens the same layout with that person's data.</div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
