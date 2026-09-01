@@ -170,6 +170,21 @@ their own declined request via existing RLS), just not the formal
 accept/counter loop the mockup depicts — that would need real schema
 support to build honestly.
 
+### 22. Unified Home's band, Highlights and Inbox are narrower than the artboard
+**Found in:** Task 14.
+`HomeUnified.dc.html`'s "Needs your attention" band mixes in "urgent
+messages" and general "schedule changes" alongside booking requests —
+only the booking-request half is real (there's no notification table for
+the other two, and Messaging isn't built — see #1, #17). "Recent
+highlights" and "Inbox" both query real tables (`media_item`,
+`thread_participant`/`message_thread`) and render honest empty states,
+but can't show real content until #2 (Storage bucket) and #1
+(`message_thread` write path) are resolved — same root gaps as before,
+just now visible on a second screen. "Next up" also doesn't surface
+competition/call-time cards the way the artboard's Regional Classic
+example does — there's no CompetitionOverview screen yet to link to
+(Task 22+).
+
 ## Low priority / cosmetic
 
 ### 8. `TeamsAndDances`'s role chip has no Director case

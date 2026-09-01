@@ -14,6 +14,7 @@ import { Placeholder } from "./pages/Placeholder";
 import { InviteRedeem } from "./pages/InviteRedeem";
 import { JoinRedeem } from "./pages/JoinRedeem";
 import { DirectorHome } from "./pages/DirectorHome";
+import { HomeUnified } from "./pages/HomeUnified";
 import { Settings } from "./pages/Settings";
 import { CompleteProfile } from "./pages/CompleteProfile";
 import { ConfirmQueue } from "./pages/ConfirmQueue";
@@ -77,7 +78,7 @@ function AppRoutes() {
     <Routes>
       <Route
         path="/"
-        element={hasRole(person, "director") ? <DirectorHome /> : <Placeholder title="Home" />}
+        element={hasRole(person, "director") ? <DirectorHome /> : <HomeUnified />}
       />
       <Route path="/schedule" element={<GlobalSchedule />} />
       <Route path="/messages" element={<Placeholder title="Messaging" />} />
