@@ -6,13 +6,15 @@ import {
   useLocation,
   useSearchParams,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./lib/AuthProvider";
+import { AuthProvider, useAuth, hasRole } from "./lib/AuthProvider";
 import { SignIn } from "./pages/SignIn";
 import { Waiting } from "./pages/Waiting";
 import { NotLinked } from "./pages/NotLinked";
 import { Placeholder } from "./pages/Placeholder";
 import { InviteRedeem } from "./pages/InviteRedeem";
 import { JoinRedeem } from "./pages/JoinRedeem";
+import { DirectorHome } from "./pages/DirectorHome";
+import { Settings } from "./pages/Settings";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -42,17 +44,28 @@ function Gate({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-  // Real destinations (Team/Comp Team/Studio, each with its own
-  // Home/Schedule/Bulletin/Media/Essentials sub-nav) land in Task 8/9/15 —
-  // this is still a placeholder route table for the four global tabs plus
-  // the Director's fifth rail item.
+  const { person } = useAuth();
+  // Director gets their own Home (DirectorHome.dc.html) — everyone else
+  // still sees the Home placeholder until Task 14 builds HomeUnified, since
+  // that's explicitly a non-Director screen. Real destinations (Team/Comp
+  // Team/Studio, each with its own Home/Schedule/Bulletin/Media/Essentials
+  // sub-nav) land in Task 8/9/15.
   return (
     <Routes>
-      <Route path="/" element={<Placeholder title="Home" />} />
+      <Route
+        path="/"
+        element={hasRole(person, "director") ? <DirectorHome /> : <Placeholder title="Home" />}
+      />
       <Route path="/schedule" element={<Placeholder title="Schedule" />} />
       <Route path="/messages" element={<Placeholder title="Messaging" />} />
       <Route path="/profile" element={<Placeholder title="Profile" />} />
-      <Route path="/director" element={<Placeholder title="Director console" />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/teams" element={<Placeholder title="Teams & Competitions" />} />
+      <Route path="/roster" element={<Placeholder title="Roster" />} />
+      <Route path="/confirm-queue" element={<Placeholder title="Confirm queue" />} />
+      <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
+      <Route path="/competitions" element={<Placeholder title="Competitions" />} />
+      <Route path="/invite-someone" element={<Placeholder title="Invite someone" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

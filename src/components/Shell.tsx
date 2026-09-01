@@ -9,7 +9,7 @@ import {
   ScheduleIcon,
   MessagingIcon,
   ProfileIcon,
-  ConsoleIcon,
+  SettingsIcon,
 } from "./icons";
 
 const primaryNavItems = [
@@ -25,10 +25,12 @@ function navClass(base: string) {
 }
 
 // The real responsive shell: a phone bottom nav below 900px, a dark left
-// rail (plus a Director-only 5th item) at 900px and up. Each destination's
-// own Home/Schedule/Bulletin/Media/Essentials sub-nav is built alongside
-// the destinations themselves (Task 8/9/15), not here — there's nothing to
-// route to yet. See docs/BUILD_PLAN.md Task 2.
+// rail (plus a Director-only Settings item — design-reference/DirectorHome.dc.html
+// and JoinCodeManagement.dc.html both show it live on the rail, unlike
+// Task 2's original guess of a standalone "Director console") at 900px and
+// up. Each destination's own Home/Schedule/Bulletin/Media/Essentials
+// sub-nav is built alongside the destinations themselves (Task 8/9/15), not
+// here — there's nothing to route to yet.
 export function Shell({ children }: { children: ReactNode }) {
   const { person } = useAuth();
   const isDirector = hasRole(person, "director");
@@ -66,9 +68,9 @@ export function Shell({ children }: { children: ReactNode }) {
         ))}
 
         {isDirector && (
-          <NavLink to="/director" className={navClass("shell-railitem")}>
-            <ConsoleIcon className="shell-icon" />
-            Director console
+          <NavLink to="/settings" className={navClass("shell-railitem")}>
+            <SettingsIcon className="shell-icon" />
+            Settings
           </NavLink>
         )}
 

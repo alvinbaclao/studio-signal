@@ -72,9 +72,9 @@ export function ProfileIcon(props: IconProps) {
   );
 }
 
-// Director-only 5th rail item — no canvas reference (DirectorConsole.dc.html
-// isn't wired to any BUILD_PLAN task), so this is a plain dashboard glyph.
-export function ConsoleIcon(props: IconProps) {
+// Director-only rail item, path ported from design-reference/DirectorHome.dc.html
+// and JoinCodeManagement.dc.html's rail "Settings" glyph.
+export function SettingsIcon(props: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -85,10 +85,8 @@ export function ConsoleIcon(props: IconProps) {
       strokeLinejoin="round"
       {...props}
     >
-      <rect x="3" y="3" width="8" height="8" rx="2" />
-      <rect x="13" y="3" width="8" height="8" rx="2" />
-      <rect x="3" y="13" width="8" height="8" rx="2" />
-      <rect x="13" y="13" width="8" height="8" rx="2" />
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 006.6 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 003 13.9H3a2 2 0 110-4h.1A1.6 1.6 0 004.6 8.6l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0110 4.6V3a2 2 0 114 0v.1a1.6 1.6 0 002.7 1.1l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 001.1 2.7H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z" />
     </svg>
   );
 }
