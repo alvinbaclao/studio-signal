@@ -17,10 +17,16 @@ insert into `message_thread` is blocked by RLS — confirmed live, even
 signed in as Director — and there's no `app.*` RPC for creating one either
 (the full function list was checked). Likely needs a database trigger on
 `team`/`comp_team` insert, or a dedicated RPC. Left `team_member` as the
-only table Task 9 writes to rather than inventing a workaround; Task 10
-will hit this same wall and needs a real answer before its Review step can
-work as specified ("creates comp_team + comp_team_cast rows +
-comp_team_source_team rows + one message_thread... all together").
+only table Task 9 writes to rather than inventing a workaround.
+
+**Confirmed again in Task 10:** a direct `comp_team` insert doesn't
+auto-create a thread via trigger either (tested live — inserted a
+comp_team, checked `message_thread` for it, found nothing), so the New
+Comp Team wizard's Review step creates `comp_team` + `comp_team_cast` +
+`comp_team_source_team` exactly as specified but skips the
+`message_thread` row the artboard's Review step promises. Everything else
+about that step (the choreographer auto-confirm trigger, the two
+comp_team_source_team rows) is real and verified live.
 
 ### 2. No Supabase Storage bucket exists yet
 **Found in:** Task 4.
@@ -96,3 +102,28 @@ through to a generic "Dancer" chip on any team they don't teach. Cosmetic
 only: there's no nav entry point into `/teams-and-dances` for a Director
 (they have `/teams` instead), so this only shows up when deliberately
 navigating there directly, as verification did.
+
+## Resolved
+
+### 9. Comp Team choreographer picker excluded pending instructors
+**Found and fixed in:** Task 10.
+`NewCompTeamWizard`'s choreographer `<select>` initially filtered
+instructor candidates to `status = 'confirmed'` only, which made the
+wizard's own explicit test case ("if the choreographer was a pending
+instructor, confirm the auto-confirm trigger fired") unreachable through
+the UI — a pending instructor could never be selected in the first place.
+Fixed by including `pending` alongside `confirmed` (still excluding
+`declined`). Caught during this task's own live verification, before it
+shipped.
+
+### 10. `CastEntryBuilder` called a hook after an early return
+**Found and fixed in:** Task 10.
+`groupedBySource`'s `useMemo` was declared after the component's
+`if (!compTeam || !person) return null;` guard — a genuine Rules-of-Hooks
+violation (React threw "Rendered more hooks than during the previous
+render" the first time the component re-rendered with data). The same
+class of bug as the one fixed in `ConfirmQueue` during Task 7. Fixed by
+moving the hook above the early return, alongside the other `useMemo` in
+the same component. Caught live before it shipped, but worth remembering
+as a recurring mistake pattern — check hook placement relative to early
+returns on every new page component, not just once per file.

@@ -246,7 +246,7 @@ export function TeamsIndex() {
                       .filter(Boolean)
                       .join(" · ")}
                   </div>
-                  <GhostLink to={`/comp-team/${c.id}`}>Manage roster ›</GhostLink>
+                  <GhostLink to={`/comp-team/${c.id}/roster`}>Manage roster ›</GhostLink>
                 </Row>
               ))
             )}

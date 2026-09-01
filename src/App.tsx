@@ -23,6 +23,8 @@ import { Roster } from "./pages/Roster";
 import { TeamsIndex } from "./pages/TeamsIndex";
 import { TeamRosterManager } from "./pages/TeamRosterManager";
 import { TeamsAndDances } from "./pages/TeamsAndDances";
+import { NewCompTeamWizard } from "./pages/NewCompTeamWizard";
+import { CastEntryBuilder } from "./pages/CastEntryBuilder";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -83,7 +85,8 @@ function AppRoutes() {
       <Route path="/invite-someone" element={<InviteSomeone />} />
       <Route path="/team/:id/roster" element={<TeamRosterManager />} />
       <Route path="/team/:id" element={<Placeholder title="Team" />} />
-      <Route path="/comp-teams/new" element={<Placeholder title="New Comp Team" />} />
+      <Route path="/comp-teams/new" element={<NewCompTeamWizard />} />
+      <Route path="/comp-team/:id/roster" element={<CastEntryBuilder />} />
       <Route path="/comp-team/:id" element={<Placeholder title="Comp Team" />} />
       <Route path="/competitions/new" element={<Placeholder title="New Competition" />} />
       <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
