@@ -35,6 +35,8 @@ import { StudioCalendarReview } from "./pages/StudioCalendarReview";
 import { TeamHome } from "./pages/TeamHome";
 import { CompTeamHome } from "./pages/CompTeamHome";
 import { StudioHome } from "./pages/StudioHome";
+import { ProfileAccount } from "./pages/ProfileAccount";
+import { DancerProfile } from "./pages/DancerProfile";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -85,7 +87,8 @@ function AppRoutes() {
       />
       <Route path="/schedule" element={<GlobalSchedule />} />
       <Route path="/messages" element={<Placeholder title="Messaging" />} />
-      <Route path="/profile" element={<Placeholder title="Profile" />} />
+      <Route path="/profile" element={<ProfileAccount />} />
+      <Route path="/dancer/:id" element={<DancerProfile />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/teams" element={<TeamsIndex />} />
       <Route path="/roster" element={<Roster />} />

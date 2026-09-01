@@ -58,18 +58,17 @@ every dancer row in the real `ConfirmQueue` gets the same Confirm/Decline
 treatment regardless of possible duplicates. Worth a real design decision
 before building, not a guess.
 
-### 5. No general "edit person details" flow exists
-**Found in:** Task 5.
+### 5. `PersonDetail` still has no "Edit details" for a Director
+**Found in:** Task 5. **Narrowed in:** Task 16.
 `PersonDetail`'s action bar has Message and Deactivate/Reactivate, but no
 "Edit details" — the artboard shows one, but there's no edit form to link
-it to. Right now the only ways a person's own data changes are: their own
-one-time CompleteProfile step (Task 4), a parent editing their dancer
-inline during that same onboarding screen, and a Director confirming/
-declining status. There's no way for a Director to correct a typo'd name
-or update someone else's phone number after the fact. Likely resolved by
-Task 16 (Profile tab) for self-edits, but Director-editing-someone-else
-isn't clearly covered by any task on the current plan — worth flagging
-when Task 16 is reached.
+it to. Task 16 resolved the self-edit half of this: `DancerProfile` now
+lets a dancer's guardian directly edit date of birth and height (real
+`person` updates, verified live), and `ProfileAccount` covers a person's
+own account facts. What's still missing is Director-editing-someone-
+else's details after the fact (correcting a typo'd name, updating a
+phone number for a person who isn't their own dancer) — not covered by
+any task on the current plan.
 
 ### 6. Invite emails aren't sent automatically
 **Found in:** Task 6.
@@ -196,6 +195,18 @@ built until Tasks 17, 18 and 19 respectively. The Home preview sections for
 each (most recent post, media gallery, essentials list) already query the
 real tables live and render correctly — they're just honestly empty right
 now, same shape as Deficiency #22 on the unified Home.
+
+### 26. Notification preferences are collected client-side only
+**Found in:** Task 16.
+`ProfileAccount`'s three notification toggles (Important posts/New
+messages/Schedule changes) are real, interactive, and persisted — to
+`localStorage`, not the database, since there's no notification-
+preference table anywhere in the schema (same root gap as #17/#22: no
+push/notification delivery mechanism exists at all). Flipping a toggle
+sticks across a reload on the same device, but nothing server-side reads
+these values, and they don't sync across devices. Revisit if real
+notification delivery is ever added — these three toggles are exactly
+what a real preferences table would need to store per-person.
 
 ## Low priority / cosmetic
 
