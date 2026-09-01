@@ -18,6 +18,7 @@ import { Settings } from "./pages/Settings";
 import { CompleteProfile } from "./pages/CompleteProfile";
 import { ConfirmQueue } from "./pages/ConfirmQueue";
 import { PersonDetail } from "./pages/PersonDetail";
+import { InviteSomeone } from "./pages/InviteSomeone";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -76,7 +77,7 @@ function AppRoutes() {
       <Route path="/person/:id" element={<PersonDetail />} />
       <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
       <Route path="/competitions" element={<Placeholder title="Competitions" />} />
-      <Route path="/invite-someone" element={<Placeholder title="Invite someone" />} />
+      <Route path="/invite-someone" element={<InviteSomeone />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
