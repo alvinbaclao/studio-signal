@@ -29,14 +29,23 @@ about that step (the choreographer auto-confirm trigger, the two
 comp_team_source_team rows) is real and verified live.
 
 ### 2. No Supabase Storage bucket exists yet
-**Found in:** Task 4.
-`supabase.storage.listBuckets()` returns empty on the real project. This
-blocks profile photo upload (Task 4's CompleteProfile shows a placeholder
-note, "Photo uploads arrive with the Media library," instead of a working
-upload control) and will block Task 18 (Media library) entirely. Needs a
-bucket created and RLS storage policies written — not something the
-frontend alone can do; likely needs to happen in the Supabase dashboard or
-via a migration-adjacent step before/during Task 18.
+**Found in:** Task 4. **Confirmed still true in:** Task 18.
+`supabase.storage.listBuckets()` returns empty on the real project — this
+was re-checked live at the start of Task 18, its own dedicated task, and
+still returns `[]`. This blocks profile photo upload (Task 4's
+CompleteProfile shows a placeholder note instead of a working upload
+control) and now confirms Task 18's own prediction: `MediaUploadComposer`
+is a real, destination-scoped screen (same shared-composer pattern as
+`BulletinComposer`) that explains this honestly rather than presenting a
+picker/compression/upload pipeline with nowhere to actually upload to.
+Everything else about Task 18 — the grouped grid, `processing_status`
+handling, tap-to-open detail view, per-destination RLS scoping, and the
+Director-only-for-Media-specifically gating rule — is real and verified
+live against manually-seeded `media_item` rows. Needs a bucket created
+and RLS storage policies written — not something this codebase can do
+itself (creating storage policies is exactly the kind of RLS change
+CLAUDE.md's four rules forbid); likely needs to happen in the Supabase
+dashboard or via a migration-adjacent step outside this repo.
 
 ### 3. No dance styles exist in the studio yet
 **Found in:** Task 4.

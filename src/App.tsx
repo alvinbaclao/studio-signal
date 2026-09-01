@@ -41,6 +41,10 @@ import { TeamBulletinPage } from "./pages/TeamBulletinPage";
 import { CompTeamBulletinPage } from "./pages/CompTeamBulletinPage";
 import { StudioBulletinPage } from "./pages/StudioBulletinPage";
 import { BulletinComposer } from "./pages/BulletinComposer";
+import { TeamMediaPage } from "./pages/TeamMediaPage";
+import { CompTeamMediaPage } from "./pages/CompTeamMediaPage";
+import { StudioMediaPage } from "./pages/StudioMediaPage";
+import { MediaUploadComposer } from "./pages/MediaUploadComposer";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -104,8 +108,8 @@ function AppRoutes() {
       <Route path="/team/:id/schedule" element={<TeamSchedulePage />} />
       <Route path="/team/:id/bulletin/new" element={<BulletinComposer kind="team" />} />
       <Route path="/team/:id/bulletin" element={<TeamBulletinPage />} />
-      <Route path="/team/:id/media/new" element={<Placeholder title="Upload Media" />} />
-      <Route path="/team/:id/media" element={<Placeholder title="Media" />} />
+      <Route path="/team/:id/media/new" element={<MediaUploadComposer kind="team" />} />
+      <Route path="/team/:id/media" element={<TeamMediaPage />} />
       <Route path="/team/:id/essentials/new" element={<Placeholder title="Add to Essentials" />} />
       <Route path="/team/:id/essentials" element={<Placeholder title="Essentials" />} />
       <Route path="/team/:id" element={<TeamHome />} />
@@ -114,8 +118,8 @@ function AppRoutes() {
       <Route path="/comp-team/:id/schedule" element={<CompTeamSchedulePage />} />
       <Route path="/comp-team/:id/bulletin/new" element={<BulletinComposer kind="comp_team" />} />
       <Route path="/comp-team/:id/bulletin" element={<CompTeamBulletinPage />} />
-      <Route path="/comp-team/:id/media/new" element={<Placeholder title="Upload Media" />} />
-      <Route path="/comp-team/:id/media" element={<Placeholder title="Media" />} />
+      <Route path="/comp-team/:id/media/new" element={<MediaUploadComposer kind="comp_team" />} />
+      <Route path="/comp-team/:id/media" element={<CompTeamMediaPage />} />
       <Route path="/comp-team/:id/essentials/new" element={<Placeholder title="Add to Essentials" />} />
       <Route path="/comp-team/:id/essentials" element={<Placeholder title="Essentials" />} />
       <Route path="/comp-team/:id" element={<CompTeamHome />} />
@@ -125,8 +129,8 @@ function AppRoutes() {
       <Route path="/studio/schedule" element={<StudioSchedulePage />} />
       <Route path="/studio/bulletin/new" element={<BulletinComposer kind="studio" />} />
       <Route path="/studio/bulletin" element={<StudioBulletinPage />} />
-      <Route path="/studio/media/new" element={<Placeholder title="Upload Media" />} />
-      <Route path="/studio/media" element={<Placeholder title="Media" />} />
+      <Route path="/studio/media/new" element={<MediaUploadComposer kind="studio" />} />
+      <Route path="/studio/media" element={<StudioMediaPage />} />
       <Route path="/studio/essentials/new" element={<Placeholder title="Add to Essentials" />} />
       <Route path="/studio/essentials" element={<Placeholder title="Essentials" />} />
       <Route path="/studio" element={<StudioHome />} />
