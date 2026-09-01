@@ -103,9 +103,40 @@ only: there's no nav entry point into `/teams-and-dances` for a Director
 (they have `/teams` instead), so this only shows up when deliberately
 navigating there directly, as verification did.
 
+### 9. No multi-select filter sheet on the global Schedule
+**Found in:** Task 11.
+`Schedule.dc.html` shows a "Filter" chip ("6 of 8") opening a sheet to
+narrow the global Schedule down to specific Teams/Comp Teams — there's a
+whole `FilterSheet.dc.html` artboard for it. `BUILD_PLAN.md`'s Task 11
+text only describes the two query shapes (global vs per-destination) and
+doesn't mention filtering, so it was left out entirely — the global
+Schedule always shows everything `event_read`'s RLS policy returns, no
+narrowing. Worth building if a real account ever has enough going on that
+the unfiltered agenda gets noisy.
+
+### 10. No per-event role indicator on Schedule rows
+**Found in:** Task 11.
+The reference artboards color-code each row with a dot showing whether an
+event is "yours to teach" (instructor) vs "your kid's" (parent) —
+`role-dot instr` / `role-dot parent`. Building that requires knowing, per
+event, whether the viewer teaches/choreographs its team or comp_team, or
+has a guardian_link to someone in it — real work not covered by Task 11's
+text. Every row currently uses ScheduleRow's plain neutral dot instead.
+
+### 11. Offline detection on Schedule screens is unverified
+**Found in:** Task 11.
+`ScheduleView` shows "Can't load this week — you're offline" when its
+`fetchEvents` promise rejects, and "Nothing scheduled this week" when it
+resolves with zero rows — but the offline branch was only exercised by
+reading the code, not by actually cutting network access mid-session and
+confirming the message appears (hard to simulate reliably in this
+environment). The empty-vs-offline distinction the code implements is
+correct in principle; the offline path itself hasn't been proven live the
+way everything else in this task was.
+
 ## Resolved
 
-### 9. Comp Team choreographer picker excluded pending instructors
+### 12. Comp Team choreographer picker excluded pending instructors
 **Found and fixed in:** Task 10.
 `NewCompTeamWizard`'s choreographer `<select>` initially filtered
 instructor candidates to `status = 'confirmed'` only, which made the
@@ -116,7 +147,7 @@ Fixed by including `pending` alongside `confirmed` (still excluding
 `declined`). Caught during this task's own live verification, before it
 shipped.
 
-### 10. `CastEntryBuilder` called a hook after an early return
+### 13. `CastEntryBuilder` called a hook after an early return
 **Found and fixed in:** Task 10.
 `groupedBySource`'s `useMemo` was declared after the component's
 `if (!compTeam || !person) return null;` guard — a genuine Rules-of-Hooks

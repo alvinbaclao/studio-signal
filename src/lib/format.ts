@@ -17,3 +17,120 @@ export function formatShortDate(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
+
+// ---------------------------------------------------------------------------
+// Studio-timezone-aware helpers for the Schedule screens (Task 11). All
+// event times are stored UTC — every function here takes an IANA zone name
+// (studio.timezone) explicitly and never falls back to the device's own
+// timezone, per PROJECT_KNOWLEDGE.md's standing rule.
+
+// "4:30p" / "8:15a" — meridiem split out so callers (ScheduleRow) can
+// render it smaller.
+export function formatTimeInZone(iso: string, timeZone: string): { main: string; meridiem: string } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(new Date(iso));
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const meridiem = (map.dayPeriod ?? "").toLowerCase().charAt(0); // "AM"/"PM" -> "a"/"p"
+  return { main: `${map.hour}:${map.minute}`, meridiem };
+}
+
+// "Thursday 27 Aug" — PROJECT_KNOWLEDGE.md's stated convention for dates.
+export function formatLongDateInZone(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(iso));
+}
+
+// "Mon"/"Tue"/... single-letter or short weekday label for day strips.
+export function weekdayLabelInZone(iso: string, timeZone: string, width: "narrow" | "short" = "narrow"): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, weekday: width }).format(new Date(iso));
+}
+
+export function dayNumberInZone(iso: string, timeZone: string): number {
+  return Number(new Intl.DateTimeFormat("en-US", { timeZone, day: "numeric" }).format(new Date(iso)));
+}
+
+// The event's Y-M-D in the studio's timezone, as a sortable "YYYY-MM-DD"
+// grouping key — this is what "which day does this event fall on" actually
+// means once the device and studio timezones can differ.
+export function zonedDateKey(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(
+    new Date(iso)
+  );
+}
+
+function zonedYMDOf(date: Date, timeZone: string): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return { year: Number(map.year), month: Number(map.month), day: Number(map.day) };
+}
+
+// The UTC instant that is midnight on (year, month, day) *in timeZone* —
+// found by rendering a UTC guess into timeZone and correcting by however
+// far the rendered wall-clock time drifted from the guess. Handles DST
+// correctly since it works from the zone's actual rendered offset, not a
+// fixed one.
+function zonedMidnightUTC(year: number, month: number, day: number, timeZone: string): Date {
+  const guess = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(guess);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const renderedAsUTC = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second)
+  );
+  const driftMs = renderedAsUTC - guess.getTime();
+  return new Date(guess.getTime() - driftMs);
+}
+
+// Monday-start week (matching every Schedule artboard's day strip) — the
+// UTC instant for the start of "today"'s week in timeZone, and the instant
+// one week later (exclusive upper bound for a starts_at range query).
+export function weekRangeInZone(reference: Date, timeZone: string): { start: Date; end: Date } {
+  const { year, month, day } = zonedYMDOf(reference, timeZone);
+  const midnightToday = zonedMidnightUTC(year, month, day, timeZone);
+  // ISO weekday (1 = Monday ... 7 = Sunday) of the zoned Y-M-D — safe to get
+  // from a plain UTC noon Date built on those components, since day-of-week
+  // doesn't depend on time-of-day or offset.
+  const dow = new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay(); // 0 = Sunday ... 6 = Saturday
+  const isoWeekday = dow === 0 ? 7 : dow;
+  const start = new Date(midnightToday.getTime() - (isoWeekday - 1) * 86400000);
+  const end = new Date(start.getTime() + 7 * 86400000);
+  return { start, end };
+}
+
+export function monthRangeInZone(reference: Date, timeZone: string): { start: Date; end: Date } {
+  const { year, month } = zonedYMDOf(reference, timeZone);
+  const start = zonedMidnightUTC(year, month, 1, timeZone);
+  const nextMonth = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 };
+  const end = zonedMidnightUTC(nextMonth.y, nextMonth.m, 1, timeZone);
+  return { start, end };
+}
+
+export function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 86400000);
+}

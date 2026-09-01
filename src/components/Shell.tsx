@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import "./Shell.css";
-import { supabase } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
+import { useStudio } from "../lib/useStudio";
 import { Avatar } from "./Avatar";
 import {
   HomeIcon,
@@ -50,30 +50,14 @@ function navClass(base: string) {
 export function Shell({ children }: { children: ReactNode }) {
   const { person } = useAuth();
   const isDirector = hasRole(person, "director");
-  const [studioName, setStudioName] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!person) return;
-    let cancelled = false;
-    supabase
-      .from("studio")
-      .select("name")
-      .eq("id", person.studio_id)
-      .single()
-      .then(({ data }) => {
-        if (!cancelled && data) setStudioName(data.name);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [person]);
+  const studio = useStudio();
 
   return (
     <div className="shell">
       <nav className="shell-rail" aria-label="Primary">
         <div className="shell-rail-brand">
           <span className="shell-rail-dot" />
-          <span className="shell-rail-name">{studioName ?? "Studio"}</span>
+          <span className="shell-rail-name">{studio?.name ?? "Studio"}</span>
         </div>
 
         {(isDirector ? directorRailItems : primaryNavItems).map(({ to, label, Icon, end }) => (

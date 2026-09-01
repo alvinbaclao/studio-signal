@@ -25,6 +25,10 @@ import { TeamRosterManager } from "./pages/TeamRosterManager";
 import { TeamsAndDances } from "./pages/TeamsAndDances";
 import { NewCompTeamWizard } from "./pages/NewCompTeamWizard";
 import { CastEntryBuilder } from "./pages/CastEntryBuilder";
+import { GlobalSchedule } from "./pages/GlobalSchedule";
+import { TeamSchedulePage } from "./pages/TeamSchedulePage";
+import { CompTeamSchedulePage } from "./pages/CompTeamSchedulePage";
+import { StudioSchedulePage } from "./pages/StudioSchedulePage";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -73,7 +77,7 @@ function AppRoutes() {
         path="/"
         element={hasRole(person, "director") ? <DirectorHome /> : <Placeholder title="Home" />}
       />
-      <Route path="/schedule" element={<Placeholder title="Schedule" />} />
+      <Route path="/schedule" element={<GlobalSchedule />} />
       <Route path="/messages" element={<Placeholder title="Messaging" />} />
       <Route path="/profile" element={<Placeholder title="Profile" />} />
       <Route path="/settings" element={<Settings />} />
@@ -84,15 +88,19 @@ function AppRoutes() {
       <Route path="/studio-calendar" element={<Placeholder title="Studio calendar" />} />
       <Route path="/invite-someone" element={<InviteSomeone />} />
       <Route path="/team/:id/roster" element={<TeamRosterManager />} />
+      <Route path="/team/:id/schedule" element={<TeamSchedulePage />} />
       <Route path="/team/:id" element={<Placeholder title="Team" />} />
       <Route path="/comp-teams/new" element={<NewCompTeamWizard />} />
       <Route path="/comp-team/:id/roster" element={<CastEntryBuilder />} />
+      <Route path="/comp-team/:id/schedule" element={<CompTeamSchedulePage />} />
       <Route path="/comp-team/:id" element={<Placeholder title="Comp Team" />} />
       <Route path="/competitions/new" element={<Placeholder title="New Competition" />} />
       <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
       <Route path="/competition/:id/manage" element={<Placeholder title="Manage competition" />} />
+      <Route path="/studio/schedule" element={<StudioSchedulePage />} />
       <Route path="/studio" element={<Placeholder title="Studio" />} />
       <Route path="/teams-and-dances" element={<TeamsAndDances />} />
+      <Route path="/add-event" element={<Placeholder title="Add event" />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
