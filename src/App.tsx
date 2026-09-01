@@ -37,6 +37,10 @@ import { CompTeamHome } from "./pages/CompTeamHome";
 import { StudioHome } from "./pages/StudioHome";
 import { ProfileAccount } from "./pages/ProfileAccount";
 import { DancerProfile } from "./pages/DancerProfile";
+import { TeamBulletinPage } from "./pages/TeamBulletinPage";
+import { CompTeamBulletinPage } from "./pages/CompTeamBulletinPage";
+import { StudioBulletinPage } from "./pages/StudioBulletinPage";
+import { BulletinComposer } from "./pages/BulletinComposer";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -98,8 +102,8 @@ function AppRoutes() {
       <Route path="/invite-someone" element={<InviteSomeone />} />
       <Route path="/team/:id/roster" element={<TeamRosterManager />} />
       <Route path="/team/:id/schedule" element={<TeamSchedulePage />} />
-      <Route path="/team/:id/bulletin/new" element={<Placeholder title="Post to Bulletin" />} />
-      <Route path="/team/:id/bulletin" element={<Placeholder title="Bulletin" />} />
+      <Route path="/team/:id/bulletin/new" element={<BulletinComposer kind="team" />} />
+      <Route path="/team/:id/bulletin" element={<TeamBulletinPage />} />
       <Route path="/team/:id/media/new" element={<Placeholder title="Upload Media" />} />
       <Route path="/team/:id/media" element={<Placeholder title="Media" />} />
       <Route path="/team/:id/essentials/new" element={<Placeholder title="Add to Essentials" />} />
@@ -108,8 +112,8 @@ function AppRoutes() {
       <Route path="/comp-teams/new" element={<NewCompTeamWizard />} />
       <Route path="/comp-team/:id/roster" element={<CastEntryBuilder />} />
       <Route path="/comp-team/:id/schedule" element={<CompTeamSchedulePage />} />
-      <Route path="/comp-team/:id/bulletin/new" element={<Placeholder title="Post to Bulletin" />} />
-      <Route path="/comp-team/:id/bulletin" element={<Placeholder title="Bulletin" />} />
+      <Route path="/comp-team/:id/bulletin/new" element={<BulletinComposer kind="comp_team" />} />
+      <Route path="/comp-team/:id/bulletin" element={<CompTeamBulletinPage />} />
       <Route path="/comp-team/:id/media/new" element={<Placeholder title="Upload Media" />} />
       <Route path="/comp-team/:id/media" element={<Placeholder title="Media" />} />
       <Route path="/comp-team/:id/essentials/new" element={<Placeholder title="Add to Essentials" />} />
@@ -119,8 +123,8 @@ function AppRoutes() {
       <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
       <Route path="/competition/:id/manage" element={<Placeholder title="Manage competition" />} />
       <Route path="/studio/schedule" element={<StudioSchedulePage />} />
-      <Route path="/studio/bulletin/new" element={<Placeholder title="Post to Bulletin" />} />
-      <Route path="/studio/bulletin" element={<Placeholder title="Bulletin" />} />
+      <Route path="/studio/bulletin/new" element={<BulletinComposer kind="studio" />} />
+      <Route path="/studio/bulletin" element={<StudioBulletinPage />} />
       <Route path="/studio/media/new" element={<Placeholder title="Upload Media" />} />
       <Route path="/studio/media" element={<Placeholder title="Media" />} />
       <Route path="/studio/essentials/new" element={<Placeholder title="Add to Essentials" />} />

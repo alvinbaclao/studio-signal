@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase, callApp } from "../lib/supabase";
-import { useAuth, hasRole } from "../lib/AuthProvider";
+import { useAuth } from "../lib/AuthProvider";
 
 interface TeamCard {
   id: string;
   name: string;
   level: string | null;
   dancerCount: number;
-  role: "Instructor" | "Parent" | "Dancer";
+  role: "Instructor" | "Parent" | "Dancer" | null;
 }
 
 interface CompTeamCard {
@@ -16,15 +16,23 @@ interface CompTeamCard {
   name: string;
   comp_team_type: string;
   competitionNames: string[];
-  role: "Choreographer" | "Parent" | "Dancer";
+  role: "Choreographer" | "Parent" | "Dancer" | null;
 }
 
 // Ports design-reference/TeamsAndDances.dc.html — Studio pinned first,
-// always, for everyone, then Teams, then Comp Teams, scoped entirely via
-// the four RPCs rather than re-deriving visibility from team_member/
-// comp_team_cast joins ourselves. Not yet reachable from a nav item — Task
-// 14's unified Home is what's meant to link here via "See all"; this route
-// works standalone in the meantime. See BUILD_PLAN.md Task 9.
+// always, for everyone, then Teams, then Comp Teams. Queries `team`/
+// `comp_team` directly (scoped to the studio) rather than through
+// teams_i_can_see()/comp_teams_i_can_see() — those RPCs turned out to be
+// scoped to "destinations this person is personally involved with," not
+// the actual (broader) directory visibility real table RLS grants, the
+// same narrowness already documented for the Director case in
+// docs/DEFICIENCIES.md #18. Confirmed live during Task 17's verification:
+// a confirmed instructor with zero relation to a Team/Comp Team could
+// still SELECT it directly even though the RPC omitted it. teams_i_teach()/
+// comp_teams_i_choreograph() are still used, just for the role chip now,
+// not for visibility — and a destination the viewer has no real role on
+// renders no chip at all rather than guessing Parent/Dancer. See
+// BUILD_PLAN.md Task 9 (and Task 17, which is what surfaced this).
 export function TeamsAndDances() {
   const { person } = useAuth();
   const [teams, setTeams] = useState<TeamCard[] | null>(null);
@@ -33,34 +41,40 @@ export function TeamsAndDances() {
 
   useEffect(() => {
     if (!person) return;
+    const personId = person.id;
+    const studioId = person.studio_id;
     let cancelled = false;
 
     async function load() {
-      const [
-        { data: teamIds },
-        { data: teachIds },
-        { data: compTeamIds },
-        { data: choreographIds },
-      ] = await Promise.all([
-        callApp<string[]>("teams_i_can_see"),
-        callApp<string[]>("teams_i_teach"),
-        callApp<string[]>("comp_teams_i_can_see"),
-        callApp<string[]>("comp_teams_i_choreograph"),
-      ]);
+      const [{ data: teamRows }, { data: compTeamRows }, { data: teachIds }, { data: choreographIds }, { data: myDancerTeamRows }, { data: myDancerCastRows }, { data: guardianRows }] =
+        await Promise.all([
+          supabase.from("team").select("id, name, level").eq("studio_id", studioId).eq("is_active", true),
+          supabase.from("comp_team").select("id, name, comp_team_type").eq("studio_id", studioId).eq("is_active", true),
+          callApp<string[]>("teams_i_teach"),
+          callApp<string[]>("comp_teams_i_choreograph"),
+          supabase.from("team_member").select("team_id").eq("person_id", personId).eq("role", "dancer"),
+          supabase.from("comp_team_cast").select("comp_team_id").eq("person_id", personId).eq("role", "dancer"),
+          supabase.from("guardian_link").select("dancer_id").eq("guardian_id", personId),
+        ]);
 
-      const teamSet = new Set(teamIds ?? []);
+      const teamSet = new Set((teamRows ?? []).map((t) => t.id));
+      const compTeamSet = new Set((compTeamRows ?? []).map((c) => c.id));
       const teachSet = new Set(teachIds ?? []);
-      const compTeamSet = new Set(compTeamIds ?? []);
       const choreographSet = new Set(choreographIds ?? []);
+      const myDancerTeamSet = new Set((myDancerTeamRows ?? []).map((r) => r.team_id));
+      const myDancerCompTeamSet = new Set((myDancerCastRows ?? []).map((r) => r.comp_team_id));
 
-      const [{ data: teamRows }, { data: compTeamRows }] = await Promise.all([
-        teamSet.size > 0
-          ? supabase.from("team").select("id, name, level").in("id", [...teamSet])
-          : Promise.resolve({ data: [] as { id: string; name: string; level: string | null }[] }),
-        compTeamSet.size > 0
-          ? supabase.from("comp_team").select("id, name, comp_team_type").in("id", [...compTeamSet])
-          : Promise.resolve({ data: [] as { id: string; name: string; comp_team_type: string }[] }),
-      ]);
+      const dancerIds = (guardianRows ?? []).map((g) => g.dancer_id);
+      let dancerTeamSet = new Set<string>();
+      let dancerCompTeamSet = new Set<string>();
+      if (dancerIds.length > 0) {
+        const [{ data: dTeamRows }, { data: dCastRows }] = await Promise.all([
+          supabase.from("team_member").select("team_id").in("person_id", dancerIds).eq("role", "dancer"),
+          supabase.from("comp_team_cast").select("comp_team_id").in("person_id", dancerIds).eq("role", "dancer"),
+        ]);
+        dancerTeamSet = new Set((dTeamRows ?? []).map((r) => r.team_id));
+        dancerCompTeamSet = new Set((dCastRows ?? []).map((r) => r.comp_team_id));
+      }
 
       const [{ data: teamMemberRows }, { data: entryRows }] = await Promise.all([
         teamSet.size > 0
@@ -78,14 +92,18 @@ export function TeamsAndDances() {
           : { data: [] as { id: string; name: string }[] };
       const competitionNameById = new Map((competitionRows ?? []).map((c) => [c.id, c.name]));
 
-      const isParent = hasRole(person, "parent");
-
       const teamCards: TeamCard[] = (teamRows ?? []).map((t) => ({
         id: t.id,
         name: t.name,
         level: t.level,
         dancerCount: (teamMemberRows ?? []).filter((m) => m.team_id === t.id && m.role === "dancer").length,
-        role: teachSet.has(t.id) ? "Instructor" : isParent ? "Parent" : "Dancer",
+        role: teachSet.has(t.id)
+          ? "Instructor"
+          : myDancerTeamSet.has(t.id)
+            ? "Dancer"
+            : dancerTeamSet.has(t.id)
+              ? "Parent"
+              : null,
       }));
 
       const compTeamCards: CompTeamCard[] = (compTeamRows ?? []).map((c) => ({
@@ -96,7 +114,13 @@ export function TeamsAndDances() {
           .filter((r) => r.comp_team_id === c.id)
           .map((r) => competitionNameById.get(r.competition_id))
           .filter((n): n is string => !!n),
-        role: choreographSet.has(c.id) ? "Choreographer" : isParent ? "Parent" : "Dancer",
+        role: choreographSet.has(c.id)
+          ? "Choreographer"
+          : myDancerCompTeamSet.has(c.id)
+            ? "Dancer"
+            : dancerCompTeamSet.has(c.id)
+              ? "Parent"
+              : null,
       }));
 
       if (cancelled) return;
@@ -262,7 +286,8 @@ export function TeamsAndDances() {
   );
 }
 
-function RoleChip({ role }: { role: string }) {
+function RoleChip({ role }: { role: string | null }) {
+  if (!role) return null;
   const isInstr = role === "Instructor" || role === "Choreographer";
   return (
     <span

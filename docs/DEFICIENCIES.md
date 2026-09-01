@@ -208,6 +208,24 @@ these values, and they don't sync across devices. Revisit if real
 notification delivery is ever added — these three toggles are exactly
 what a real preferences table would need to store per-person.
 
+### 27. Bulletin has no "Seen by X of Y" — no read-tracking table exists
+**Found in:** Task 17.
+Every Bulletin artboard shows a "Seen by 42 of 58 →" line per post — there
+is no table anywhere in the schema that tracks who has viewed a `post`
+(`thread_read_state` is Messaging-specific, for `message_thread`, not
+`post`). Omitted entirely rather than faked. Revisit only if a real
+post-read-tracking table is ever added — it would need its own migration,
+which this codebase cannot write (see CLAUDE.md's four rules).
+
+### 28. Bulletin media attachment is dropped — same Storage gap as before
+**Found in:** Task 17.
+`BulletinComposer`'s "Attach a photo or video" is a calm explanatory note,
+not a working control, same treatment as Deficiency #2/#15/#23's root
+cause (no Storage bucket exists for this studio). `BulletinFeed` still
+renders inline media placeholders for any `post_media` a post has — real,
+live-queried, just currently always empty since nothing can attach media
+yet.
+
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle
@@ -226,14 +244,15 @@ whether they're confirmed at all before they'd ever appear on a roster).
 Every roster row renders the same way for now. Revisit if a real
 "unplaced dancer" concept is ever added.
 
-### 8. `TeamsAndDances`'s role chip has no Director case
-**Found in:** Task 9.
-The role chip logic (`Instructor`/`Choreographer` vs `Parent` vs
-`Dancer`) doesn't account for a Director viewing the page — they fall
-through to a generic "Dancer" chip on any team they don't teach. Cosmetic
-only: there's no nav entry point into `/teams-and-dances` for a Director
-(they have `/teams` instead), so this only shows up when deliberately
-navigating there directly, as verification did.
+### 29. Bulletin reactions are one fixed kind, not a picker
+**Found in:** Task 17.
+The reference artboards show different emoji on different posts (👍 on
+one, ❤️ on another), but no artboard shows an actual picker UI — no tap
+target for choosing which emoji, just a static rendered pill per post.
+Read that as illustrative mockup variety, not a spec, and built the
+literal "single-tap upsert/delete" BUILD_PLAN.md Task 17 describes: one
+fixed reaction kind (👍), tap to add your own, tap again to remove it.
+Revisit if a real multi-reaction picker is ever specified concretely.
 
 ### 9. No multi-select filter sheet on the global Schedule
 **Found in:** Task 11.
@@ -319,3 +338,21 @@ directly" everywhere else in the app. Fixed by OR'ing both pages' gate
 with `isDirector`, matching `StudioSchedulePage`'s existing pattern. Predates
 Task 12 (introduced in Task 11, before Add Event existed to make the gap
 visible) — caught during this task's own live verification.
+
+### 30. `TeamsAndDances` under-showed real visibility for everyone, not just Director
+**Found and fixed in:** Task 17.
+Deficiency #18 documented `teams_i_can_see()`/`comp_teams_i_can_see()`
+returning empty for a Director; Task 17's own Verify step ("confirm you
+can see the Comp Team exists in TeamsAndDances" even when you can't see
+its posts) forced a closer look and found the same narrowness holds for
+*everyone*, not just Director — both RPCs are scoped to "destinations
+this person is personally involved with," while real `comp_team`/`team`
+row-level RLS grants any confirmed studio member visibility into every
+destination in their studio (confirmed live: an instructor with zero
+relation to a Team/Comp Team could still `SELECT` it directly even
+though the RPC omitted it from its list). `TeamsAndDances` now queries
+`team`/`comp_team` directly, scoped to the studio, and uses
+`teams_i_teach()`/`comp_teams_i_choreograph()` only to decide the role
+chip — a destination the viewer has no real role on now renders no chip
+at all instead of guessing "Parent"/"Dancer," which also resolves the
+old Director-chip cosmetic gap this file used to track separately.
