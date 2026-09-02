@@ -390,17 +390,50 @@ change, before running `supabase db push` — see `CLAUDE.md` and
 `docs/PROJECT_KNOWLEDGE.md`'s "THE DATABASE IS FIXED BY DEFAULT" section
 for the current wording.
 
-**Still open, deliberately not touched by this fix:** nothing in this
-codebase creates `team`/`comp_team`/`studio`-scope `message_thread` rows
-— `thread_insert`'s policy already allows a Director (any scope) or the
-relevant instructor/choreographer (team/comp_team scope) to create one,
-but no trigger and no UI action currently calls it, so those three thread
-kinds still don't exist for the one real studio/team in the database.
-This was flagged as a candidate fix in the original wrong diagnosis
-(auto-create triggers on `team`/`comp_team`/`studio` insert) but wasn't
-part of the corrected, minimal migration — revisit as its own, separate
-decision if Team/Comp Team/Studio messaging needs to actually work, not
-just Direct.
+**Team/Comp Team/Studio threads, fixed in a follow-up pass the same day**
+(`supabase/migrations/20260902163425_team_comp_team_studio_threads.sql`):
+nothing in this codebase ever created a `team`/`comp_team`/`studio`-scope
+`message_thread` row — `thread_insert`'s policy already allowed a
+Director (any scope) or the relevant instructor/choreographer (team/
+comp_team scope) to create one, but nothing called it. Added triggers on
+`team`/`comp_team`/`studio` INSERT (matching this schema's existing
+choreographer-auto-confirm-trigger convention exactly) plus a one-time,
+`NOT EXISTS`-guarded backfill for rows that predate the triggers —
+verified live: the real "Jazz II," "Junior Comp Team," and "Task 6 Test
+Team" rows, plus the one real studio, all got a thread immediately.
+
+That alone wasn't enough: confirmed live that the Director — who has zero
+`team_member`/`comp_team_cast` rows anywhere, same underlying fact as
+Deficiency #18 — would not have seen any of these new threads in their
+own Inbox, because `app.threads_i_can_see()`'s team/comp_team branches
+gate on `teams_i_can_see()`/`comp_teams_i_can_see()`, which are personal-
+involvement-only. This is the exact Deficiency #18/#19 pattern
+resurfacing inside a live database function this time, not frontend code.
+Fixed with a precise, minimal `CREATE OR REPLACE FUNCTION
+app.threads_i_can_see()` — same `SETOF uuid` signature (confirmed via
+`pg_get_functiondef` before writing it, so this was a clean replace, no
+`DROP`, no risk to the four policies that reference it), only adding `OR
+app.is_director(mt.studio_id)` to the team/comp_team branches — the exact
+same clause `thread_insert`'s own policy already used for thread
+*creation*, just missing from thread *visibility*. Verified live:
+`threads_i_can_see()` went from `[]` to all four real thread ids for the
+Director immediately after.
+
+Also fixed while touching this: `MessagingThread.tsx`'s "N people"
+subtitle and "Seen by X of Y" denominator, which sourced audience size
+from `thread_participant` — correct for `direct` scope (where it's the
+only source of truth) but always zero for team/comp_team/studio scope,
+since that table is deliberately never populated for those three scopes
+(see above). Now computed from a real `team_member`/`comp_team_cast`
+count query, or a confirmed-studio-member count for studio scope.
+Verified live: the studio thread's "Seen by" went from the old, always-
+wrong "0 of 0" to a real "1 of 1" after sending and marking read.
+
+Verified live end-to-end through the actual UI: Inbox now shows all four
+real threads (three Team, one Studio) instead of "No conversations yet";
+opened Jazz II's Team chat as Director, composer and Urgent/Pin toggles
+present, sent an urgent message, it rendered with the IMPORTANT tag. All
+test messages/read-state cleaned up afterward.
 
 ### 12. Comp Team choreographer picker excluded pending instructors
 **Found and fixed in:** Task 10.

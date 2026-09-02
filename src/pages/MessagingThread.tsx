@@ -92,18 +92,34 @@ export function MessagingThread() {
       if (cancelled) return;
       const nameMap = new Map((peopleRows ?? []).map((p) => [p.id, p.full_name]));
 
+      // thread_participant is only ever populated for direct-scope threads
+      // (see docs/DEFICIENCIES.md #1's resolution) — team/comp_team/studio
+      // membership is dynamic, so the real audience for "N people" and
+      // "Seen by X of Y" comes from team_member/comp_team_cast/confirmed
+      // studio members instead, not from pIds.
       let name = t.subject ?? "";
       let subtitle = "";
+      let audienceIds = pIds;
       if (t.scope === "team") {
-        const { data: team } = await supabase.from("team").select("name").eq("id", t.team_id!).single();
+        const [{ data: team }, { data: teamMemberRows }] = await Promise.all([
+          supabase.from("team").select("name").eq("id", t.team_id!).single(),
+          supabase.from("team_member").select("person_id").eq("team_id", t.team_id!),
+        ]);
         name = team?.name ? `${team.name} · Team chat` : "Team chat";
-        subtitle = `${pIds.length} ${pIds.length === 1 ? "person" : "people"}`;
+        audienceIds = (teamMemberRows ?? []).map((r) => r.person_id);
+        subtitle = `${audienceIds.length} ${audienceIds.length === 1 ? "person" : "people"}`;
       } else if (t.scope === "comp_team") {
-        const { data: compTeam } = await supabase.from("comp_team").select("name").eq("id", t.comp_team_id!).single();
+        const [{ data: compTeam }, { data: castRows }] = await Promise.all([
+          supabase.from("comp_team").select("name").eq("id", t.comp_team_id!).single(),
+          supabase.from("comp_team_cast").select("person_id").eq("comp_team_id", t.comp_team_id!),
+        ]);
         name = compTeam?.name ? `${compTeam.name} · Cast` : "Cast";
-        subtitle = `${pIds.length} ${pIds.length === 1 ? "person" : "people"}`;
+        audienceIds = (castRows ?? []).map((r) => r.person_id);
+        subtitle = `${audienceIds.length} ${audienceIds.length === 1 ? "person" : "people"}`;
       } else if (t.scope === "studio") {
         name = t.subject ?? "Studio";
+        const { data: confirmedRows } = await supabase.from("person_with_login").select("id").eq("status", "confirmed").eq("is_active", true);
+        audienceIds = (confirmedRows ?? []).map((r) => r.id).filter((v): v is string => !!v);
         subtitle = studio ? `Everyone at ${studio.name}` : "Studio-wide";
       } else {
         const otherId = pIds.find((pid) => pid !== person!.id);
@@ -115,7 +131,7 @@ export function MessagingThread() {
       setHeaderName(name);
       setHeaderSubtitle(subtitle);
       setMessages(msgRows ?? []);
-      setParticipantIds(pIds);
+      setParticipantIds(audienceIds);
       setPersonName(nameMap);
       setLastReadAtByPerson(new Map((readRows ?? []).map((r) => [r.person_id, r.last_read_at])));
 
