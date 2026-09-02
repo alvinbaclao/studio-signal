@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import "./Shell.css";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
+import { useViewport } from "../lib/useViewport";
 import { Avatar } from "./Avatar";
 import {
   HomeIcon,
@@ -51,9 +52,10 @@ export function Shell({ children }: { children: ReactNode }) {
   const { person } = useAuth();
   const isDirector = hasRole(person, "director");
   const studio = useStudio();
+  const { forceDesktop } = useViewport();
 
   return (
-    <div className="shell">
+    <div className={forceDesktop ? "shell force-desktop" : "shell"}>
       <nav className="shell-rail" aria-label="Primary">
         <div className="shell-rail-brand">
           <span className="shell-rail-dot" />

@@ -322,6 +322,18 @@ rather than a reasonable-looking empty state. Revisit by wiring it to
 the same RLS-scoped, no-destination-filter `event` query `HomeUnified`
 and `GlobalSchedule` both already use.
 
+### 39. `DirectorTeamsMobile` drops the "new posts"/"all read" marker
+**Found in:** Task 25.
+`DirectorTeamsMobile.dc.html` shows a "4 new"/"All read" badge per
+destination row, meant to reuse "DirectorHome's Messaging oversight
+data" per the artboard's own copy — but that section is itself a
+hardcoded "No conversations yet." placeholder (confirmed while checking,
+same root issue as Deficiency #38), and there's no Bulletin
+read-tracking table either (Deficiency #27). No real data exists for
+this marker from either angle, so it's dropped entirely rather than
+faked — rows show real name/instructor-or-choreographer/dancer-count
+captions only. Revisit once #27 (Bulletin read-tracking) exists.
+
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle
@@ -395,6 +407,20 @@ fresh load re-fetches it. Fix is a few lines in `MessagingThread.tsx`
 (update the local map after `markAsRead()` succeeds instead of only
 writing to the database) — not fixed here since it wasn't part of the
 scope of Deficiency #1's fix.
+
+### 40. DirectorHome's "Studio at a glance" counts inactive Teams/Comp Teams
+**Found in:** Task 25, while cross-checking `DirectorTeamsMobile` (newly
+built) against `TeamsIndex`'s numbers — both correctly agreed with each
+other, which is what surfaced this.
+`useDirectorHome`'s `teamCount`/`compTeamCount` (`DirectorHome`'s "Studio
+at a glance" tiles) query `team`/`comp_team` with no `is_active` filter,
+while `useTeamsIndexData` (`TeamsIndex`, and now `DirectorTeamsMobile`)
+correctly filters to `is_active = true`. Concretely: this studio has 3
+deactivated leftover Team rows from earlier build/test work — DirectorHome
+shows "3 Teams," TeamsIndex and DirectorTeamsMobile both correctly show
+"0." Pre-existing since Task 3, untouched by this task's own hook
+extraction (moved verbatim). Revisit by adding the same `.eq("is_active",
+true)` DirectorHome's other counts already imply.
 
 ## Resolved
 

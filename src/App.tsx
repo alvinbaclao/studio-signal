@@ -7,12 +7,16 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { AuthProvider, useAuth, hasRole } from "./lib/AuthProvider";
+import { ViewportProvider, useViewport } from "./lib/useViewport";
 import { SignIn } from "./pages/SignIn";
 import { Waiting } from "./pages/Waiting";
 import { NotLinked } from "./pages/NotLinked";
 import { InviteRedeem } from "./pages/InviteRedeem";
 import { JoinRedeem } from "./pages/JoinRedeem";
 import { DirectorHome } from "./pages/DirectorHome";
+import { DirectorHomeMobile } from "./pages/DirectorHomeMobile";
+import { DirectorTeamsMobile } from "./pages/DirectorTeamsMobile";
+import { DirectorBroadcastComposer } from "./pages/DirectorBroadcastComposer";
 import { HomeUnified } from "./pages/HomeUnified";
 import { Settings } from "./pages/Settings";
 import { CompleteProfile } from "./pages/CompleteProfile";
@@ -90,16 +94,24 @@ function Gate({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { person } = useAuth();
+  const { isDesktop } = useViewport();
+  const isDirector = hasRole(person, "director");
   // Director gets their own Home (DirectorHome.dc.html) — everyone else
-  // still sees the Home placeholder until Task 14 builds HomeUnified, since
-  // that's explicitly a non-Director screen. Real destinations (Team/Comp
-  // Team/Studio, each with its own Home/Schedule/Bulletin/Media/Essentials
-  // sub-nav) land in Task 8/9/15.
+  // sees HomeUnified, since that's explicitly a non-Director screen. Real
+  // destinations (Team/Comp Team/Studio, each with its own Home/Schedule/
+  // Bulletin/Media/Essentials sub-nav) land in Task 8/9/15.
+  //
+  // Below 900px a Director sees purpose-built condensed screens instead
+  // (Task 25) — DirectorHomeMobile, DirectorTeamsMobile — not the desktop
+  // console reflowed; "Switch to full console" (useViewport's
+  // forceDesktop) is the only way back to the desktop versions on a
+  // narrow viewport. Both routes stay the same either way, matching how
+  // every other breakpoint in this app works (no separate URL).
   return (
     <Routes>
       <Route
         path="/"
-        element={hasRole(person, "director") ? <DirectorHome /> : <HomeUnified />}
+        element={isDirector ? (isDesktop ? <DirectorHome /> : <DirectorHomeMobile />) : <HomeUnified />}
       />
       <Route path="/schedule" element={<GlobalSchedule />} />
       <Route path="/messages" element={<MessagingInbox />} />
@@ -108,7 +120,8 @@ function AppRoutes() {
       <Route path="/profile" element={<ProfileAccount />} />
       <Route path="/dancer/:id" element={<DancerProfile />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/teams" element={<TeamsIndex />} />
+      <Route path="/teams" element={isDirector && !isDesktop ? <DirectorTeamsMobile /> : <TeamsIndex />} />
+      <Route path="/broadcast" element={<DirectorBroadcastComposer />} />
       <Route path="/roster" element={<Roster />} />
       <Route path="/confirm-queue" element={<ConfirmQueue />} />
       <Route path="/person/:id" element={<PersonDetail />} />
@@ -155,11 +168,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Gate>
-          <Shell>
-            <AppRoutes />
-          </Shell>
-        </Gate>
+        <ViewportProvider>
+          <Gate>
+            <Shell>
+              <AppRoutes />
+            </Shell>
+          </Gate>
+        </ViewportProvider>
       </AuthProvider>
     </BrowserRouter>
   );

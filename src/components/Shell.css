@@ -2,7 +2,16 @@
    900px and up. Pure CSS breakpoint (no JS width detection) so resizing the
    window switches shape immediately — see BUILD_PLAN.md Task 2's Verify
    step. 900px is the crossover between the 390px phone and 1440px Director
-   console reference widths. */
+   console reference widths.
+
+   `.shell.force-desktop` (Task 25's "Switch to full console") duplicates
+   the >=900px block as a class selector, so a Director's own choice to see
+   the full console on a narrow physical viewport works the same way an
+   actually-wide window does — same rules, JS just supplies the trigger
+   this one time instead of true window width. useViewport() (src/lib/
+   useViewport.ts) is what decides which *route-level* component renders
+   (DirectorHome vs DirectorHomeMobile, etc.); this class only needs to
+   keep the rail/bottom-nav choice in sync with that same decision. */
 
 .shell {
   min-height: 100dvh;
@@ -79,6 +88,31 @@
     position: sticky;
     top: 0;
   }
+}
+
+.shell.force-desktop {
+  flex-direction: row;
+}
+
+.shell.force-desktop .shell-content {
+  padding-bottom: 0;
+}
+
+.shell.force-desktop .shell-bottom-nav {
+  display: none;
+}
+
+.shell.force-desktop .shell-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 232px;
+  flex-shrink: 0;
+  background: var(--band);
+  padding: 22px 14px;
+  min-height: 100dvh;
+  position: sticky;
+  top: 0;
 }
 
 .shell-rail-brand {
