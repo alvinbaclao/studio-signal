@@ -59,6 +59,45 @@ RPC (`app.start_direct_thread`, one per Team/Comp Team-creation trigger
 for those scopes) or an RLS INSERT policy on `message_thread` — not
 something this codebase can add itself (CLAUDE.md's four rules).
 
+**Confirmed deeper still in Task 21:** with no `message_thread` row ever
+reachable, re-probed whether `message`, `thread_participant`, or
+`thread_read_state` could at least be written to independently — all
+three refuse too, live, as Director, against a well-formed row pointing
+at a nonexistent thread id (`42501` on each). So the entire write surface
+of Messaging is blocked, not just thread creation — confirming this is
+one root gap, not several. `MessagingThread` was built as the same kind
+of honest shell as `MessagingInbox`/`NewMessage`: a real query for the
+thread + its messages/participants/read-state, real per-scope composer
+gating (studio-wide is Director-only; Team/Comp Team is open to anyone
+who can see it, since reaching this screen at all already means RLS
+granted that visibility — a real, deliberate difference from
+`BulletinComposer`'s instructor/choreographer-only posting; direct is
+participants-only), real urgent/pin restriction (Director, or that
+Team's instructor/Comp Team's choreographer, checked live per scope),
+real mark-as-read on mount and on tab refocus, and a real Realtime
+subscription on `message` filtered to the thread. None of it can be
+exercised end-to-end with real data — Inbox is always empty, so there's
+no real thread id to navigate to. What *was* verified live: visiting
+`/messages/thread/<id>` for a nonexistent id renders a clean "Conversation
+not found" state with no console errors, and the `thread_scope` enum's
+values (`studio`/`team`/`comp_team`/`direct`) were confirmed live against
+the real Postgres enum to make sure the per-scope branching uses the
+exact right strings. The composer-gating branches, the urgent/pin
+restriction, the Realtime delivery, and the "Seen by X of Y" computation
+are all unverified against real messages for the same root reason as
+everything else in this entry — revisit and drive this screen through
+Playwright with real data once #1 is fixed.
+
+BUILD_PLAN.md's own Task 21 text also calls for a second, separate
+backend step this codebase has no path to perform: `alter publication
+supabase_realtime add table message;`, so the Realtime subscription
+above actually delivers anything instead of connecting and silently
+receiving nothing. That's DDL against the database — this codebase has
+only the anon key, never a service-role/postgres credential, and
+CLAUDE.md's four rules keep schema-adjacent changes out of this codebase
+regardless of credentials. Needs to be run from the Supabase dashboard or
+a migration outside this repo, same as Deficiency #2's Storage bucket.
+
 ### 2. No Supabase Storage bucket exists yet
 **Found in:** Task 4. **Confirmed still true in:** Task 18.
 `supabase.storage.listBuckets()` returns empty on the real project — this

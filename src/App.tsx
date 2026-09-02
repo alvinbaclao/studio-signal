@@ -51,6 +51,7 @@ import { StudioEssentialsPage } from "./pages/StudioEssentialsPage";
 import { EssentialsComposer } from "./pages/EssentialsComposer";
 import { MessagingInbox } from "./pages/MessagingInbox";
 import { NewMessage } from "./pages/NewMessage";
+import { MessagingThread } from "./pages/MessagingThread";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -102,7 +103,7 @@ function AppRoutes() {
       <Route path="/schedule" element={<GlobalSchedule />} />
       <Route path="/messages" element={<MessagingInbox />} />
       <Route path="/messages/new" element={<NewMessage />} />
-      <Route path="/messages/thread/:id" element={<Placeholder title="Conversation" />} />
+      <Route path="/messages/thread/:id" element={<MessagingThread />} />
       <Route path="/profile" element={<ProfileAccount />} />
       <Route path="/dancer/:id" element={<DancerProfile />} />
       <Route path="/settings" element={<Settings />} />
