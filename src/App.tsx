@@ -52,6 +52,7 @@ import { EssentialsComposer } from "./pages/EssentialsComposer";
 import { MessagingInbox } from "./pages/MessagingInbox";
 import { NewMessage } from "./pages/NewMessage";
 import { MessagingThread } from "./pages/MessagingThread";
+import { CompetitionWizard } from "./pages/CompetitionWizard";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -132,9 +133,9 @@ function AppRoutes() {
       <Route path="/comp-team/:id/essentials/new" element={<EssentialsComposer kind="comp_team" />} />
       <Route path="/comp-team/:id/essentials" element={<CompTeamEssentialsPage />} />
       <Route path="/comp-team/:id" element={<CompTeamHome />} />
-      <Route path="/competitions/new" element={<Placeholder title="New Competition" />} />
+      <Route path="/competitions/new" element={<CompetitionWizard />} />
       <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
-      <Route path="/competition/:id/manage" element={<Placeholder title="Manage competition" />} />
+      <Route path="/competition/:id/manage" element={<CompetitionWizard />} />
       <Route path="/studio/schedule" element={<StudioSchedulePage />} />
       <Route path="/studio/bulletin/new" element={<BulletinComposer kind="studio" />} />
       <Route path="/studio/bulletin" element={<StudioBulletinPage />} />

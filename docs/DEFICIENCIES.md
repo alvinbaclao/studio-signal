@@ -228,6 +228,40 @@ yet beyond editing the column directly. Revisit if manual reordering is
 ever needed; would need a drag library or custom pointer-event handling,
 neither of which exists in this codebase today.
 
+### 33. No reachable UI for an instructor to propose a competition entry
+**Found in:** Task 22.
+`competition_entry.proposed_by`/`accepted_at` are real columns and
+BUILD_PLAN's own text calls for them ("Instructor proposals... live here
+too, Director accepts/declines"). `CompetitionWizard`'s Entries step
+handles the Director-facing half correctly — a pending proposal renders
+with Accept/Decline instead of a plain checkbox, verified live by seeding
+a test row directly and confirming both actions work (Accept sets
+`accepted_at`; Decline deletes the row). But there's no screen anywhere
+in this build where a confirmed instructor could actually create one —
+`/teams` (Teams & Competitions, where competitions live) has no nav path
+for non-Directors at all (`Shell.tsx`'s `primaryNavItems` doesn't include
+it), so the "propose" half of this feature has no entry point yet, same
+shape as Deficiency #20's "no entry point for Request a move." Revisit
+once there's a real screen for an instructor to reach a Comp Team they
+choreograph and propose entering it somewhere.
+
+### 34. Competition dates can render a day early (UTC-parse / local-render mismatch)
+**Found in:** Task 22, on real data for the first time.
+`TeamsIndex.tsx`'s existing `formatShortDate` (`src/lib/format.ts`,
+already shipped since Task 8) does `new Date(iso).toLocaleDateString(...)`
+on a plain date-only string like `"2027-09-09"` — that parses as UTC
+midnight, then renders in the *device's* local timezone, so anyone west
+of UTC sees the previous day. Confirmed live: entered "Sep 9, 2027" in
+`CompetitionWizard`'s Details step, `starts_on` stored correctly as
+`2027-09-09`, but `/teams`' competition row displayed "8 Sept." This bug
+predates Task 22 — it's been sitting in already-shipped code since no
+`competition` row existed to trigger it until now. The rest of this
+codebase's date handling already has a real fix for exactly this class of
+bug (`zonedDateKey`/`zonedMidnightUTC` in the same file, built for the
+Schedule screens' studio-timezone rule) — `formatShortDate` itself just
+never got the same treatment. Affects every screen that calls
+`formatShortDate` on a date-only column, not just this one.
+
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle
