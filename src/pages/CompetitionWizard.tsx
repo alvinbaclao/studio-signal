@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/AuthProvider";
+import { useStudio } from "../lib/useStudio";
+import { zonedDateTimeToUTC, formatTimeInZone } from "../lib/format";
 import { Avatar } from "../components/Avatar";
 import { Chip } from "../components/Chip";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -34,6 +36,15 @@ interface EntryState {
   proposedBy: string | null;
   proposedByName: string | null;
   acceptedAt: string | null;
+  callTime: string | null;
+}
+
+interface ConflictInfo {
+  eventId: string;
+  title: string | null;
+  destinationName: string;
+  startsAt: string;
+  endsAt: string;
 }
 
 // Ports design-reference/CompetitionWizardDetails.dc.html →
@@ -67,6 +78,7 @@ interface EntryState {
 export function CompetitionWizard() {
   const { id: routeId } = useParams<{ id?: string }>();
   const { person } = useAuth();
+  const studio = useStudio();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>(routeId ? 2 : 1);
@@ -84,6 +96,14 @@ export function CompetitionWizard() {
   const [compTeams, setCompTeams] = useState<CompTeamRow[] | null>(null);
   const [entries, setEntries] = useState<Map<string, EntryState>>(new Map());
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const [staggerStart, setStaggerStart] = useState("07:00");
+  const [staggerGap, setStaggerGap] = useState(15);
+  const [staggering, setStaggering] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTime, setEditTime] = useState("");
+  const [conflict, setConflict] = useState<ConflictInfo | null>(null);
+  const [savingTime, setSavingTime] = useState(false);
 
   useEffect(() => {
     if (!routeId || !person) return;
@@ -109,7 +129,7 @@ export function CompetitionWizard() {
   }, [routeId, person]);
 
   useEffect(() => {
-    if (step !== 2 || !person || !competitionId) return;
+    if (!person || !competitionId) return;
     let cancelled = false;
     async function load() {
       const { data: teamRows } = await supabase
@@ -124,7 +144,7 @@ export function CompetitionWizard() {
         ids.length > 0
           ? supabase.from("comp_team_cast").select("comp_team_id, person_id, role").in("comp_team_id", ids)
           : Promise.resolve({ data: [] as { comp_team_id: string; person_id: string; role: string }[] }),
-        supabase.from("competition_entry").select("id, comp_team_id, proposed_by, accepted_at").eq("competition_id", competitionId!),
+        supabase.from("competition_entry").select("id, comp_team_id, proposed_by, accepted_at, call_time").eq("competition_id", competitionId!),
       ]);
       if (cancelled) return;
 
@@ -154,7 +174,7 @@ export function CompetitionWizard() {
         new Map(
           (entryRows ?? []).map((e) => [
             e.comp_team_id,
-            { entryId: e.id, proposedBy: e.proposed_by, proposedByName: e.proposed_by ? nameById.get(e.proposed_by) ?? null : null, acceptedAt: e.accepted_at },
+            { entryId: e.id, proposedBy: e.proposed_by, proposedByName: e.proposed_by ? nameById.get(e.proposed_by) ?? null : null, acceptedAt: e.accepted_at, callTime: e.call_time },
           ])
         )
       );
@@ -163,7 +183,7 @@ export function CompetitionWizard() {
     return () => {
       cancelled = true;
     };
-  }, [step, person, competitionId]);
+  }, [person, competitionId]);
 
   const canContinue = name.trim().length > 0 && date.trim().length > 0;
 
@@ -225,7 +245,7 @@ export function CompetitionWizard() {
         .select("id")
         .single();
       if (!insErr && data) {
-        setEntries((prev) => new Map(prev).set(compTeamId, { entryId: data.id, proposedBy: null, proposedByName: null, acceptedAt: new Date().toISOString() }));
+        setEntries((prev) => new Map(prev).set(compTeamId, { entryId: data.id, proposedBy: null, proposedByName: null, acceptedAt: new Date().toISOString(), callTime: null }));
       }
     }
     setTogglingId(null);
@@ -271,7 +291,7 @@ export function CompetitionWizard() {
       if (!insErr && data) {
         setEntries((prev) => {
           const next = new Map(prev);
-          for (const row of data) next.set(row.comp_team_id, { entryId: row.id, proposedBy: null, proposedByName: null, acceptedAt });
+          for (const row of data) next.set(row.comp_team_id, { entryId: row.id, proposedBy: null, proposedByName: null, acceptedAt, callTime: null });
           return next;
         });
       }
@@ -281,6 +301,124 @@ export function CompetitionWizard() {
       const { error: delErr } = await supabase.from("competition_entry").delete().in("id", toRemove);
       if (!delErr) setEntries(new Map());
     }
+  }
+
+  // Cast-conflict check for a candidate call time: does anyone in this Comp
+  // Team's cast already have something else on their calendar right then?
+  // No exclusion constraint covers this (unlike the space-double-booking
+  // one AddEvent/RequestReviewModal already lean on) — cast membership
+  // spans team_member (their own class Team) and comp_team_cast (any other
+  // Comp Team they're also on), neither of which `event` references by
+  // person, only by team_id/comp_team_id — so this is a real query, not a
+  // constraint violation to catch.
+  async function findConflict(compTeamId: string, candidateISO: string): Promise<ConflictInfo | null> {
+    const { data: castRows } = await supabase.from("comp_team_cast").select("person_id").eq("comp_team_id", compTeamId);
+    const personIds = (castRows ?? []).map((r) => r.person_id);
+    if (personIds.length === 0) return null;
+
+    const [{ data: teamMemberRows }, { data: otherCastRows }] = await Promise.all([
+      supabase.from("team_member").select("team_id").in("person_id", personIds),
+      supabase.from("comp_team_cast").select("comp_team_id").in("person_id", personIds).neq("comp_team_id", compTeamId),
+    ]);
+    const teamIds = [...new Set((teamMemberRows ?? []).map((r) => r.team_id))];
+    const otherCompTeamIds = [...new Set((otherCastRows ?? []).map((r) => r.comp_team_id))];
+    if (teamIds.length === 0 && otherCompTeamIds.length === 0) return null;
+
+    const orParts: string[] = [];
+    if (teamIds.length > 0) orParts.push(`team_id.in.(${teamIds.join(",")})`);
+    if (otherCompTeamIds.length > 0) orParts.push(`comp_team_id.in.(${otherCompTeamIds.join(",")})`);
+
+    const { data: eventRows } = await supabase
+      .from("event")
+      .select("id, title, team_id, comp_team_id, starts_at, ends_at")
+      .is("cancelled_at", null)
+      .lte("starts_at", candidateISO)
+      .gt("ends_at", candidateISO)
+      .or(orParts.join(","))
+      .limit(1);
+    if (!eventRows || eventRows.length === 0) return null;
+
+    const ev = eventRows[0];
+    let destinationName = "elsewhere in the studio";
+    if (ev.team_id) {
+      const { data } = await supabase.from("team").select("name").eq("id", ev.team_id).single();
+      if (data) destinationName = data.name;
+    } else if (ev.comp_team_id) {
+      const { data } = await supabase.from("comp_team").select("name").eq("id", ev.comp_team_id).single();
+      if (data) destinationName = data.name;
+    }
+    return { eventId: ev.id, title: ev.title, destinationName, startsAt: ev.starts_at, endsAt: ev.ends_at };
+  }
+
+  function candidateISO(hm: string): string | null {
+    if (!studio || !date || !hm) return null;
+    return zonedDateTimeToUTC(date, hm, studio.timezone).toISOString();
+  }
+
+  async function startEditing(compTeamId: string) {
+    setEditingId(compTeamId);
+    setConflict(null);
+    const existing = entries.get(compTeamId);
+    if (existing?.callTime && studio) {
+      const mins = new Date(existing.callTime);
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: studio.timezone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).formatToParts(mins);
+      const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      setEditTime(`${map.hour}:${map.minute}`);
+    } else {
+      setEditTime("");
+    }
+  }
+
+  async function saveCallTime(compTeamId: string, ignoreConflict = false) {
+    const existing = entries.get(compTeamId);
+    const iso = candidateISO(editTime);
+    if (!existing || !iso) return;
+    setSavingTime(true);
+    if (!ignoreConflict) {
+      const found = await findConflict(compTeamId, iso);
+      if (found) {
+        setConflict(found);
+        setSavingTime(false);
+        return;
+      }
+    }
+    const { error: updErr } = await supabase.from("competition_entry").update({ call_time: iso }).eq("id", existing.entryId);
+    setSavingTime(false);
+    if (!updErr) {
+      setEntries((prev) => new Map(prev).set(compTeamId, { ...existing, callTime: iso }));
+      setEditingId(null);
+      setConflict(null);
+    }
+  }
+
+  const TYPE_ORDER: CompTeamType[] = ["solo", "duo", "trio", "small_group", "large_group", "production"];
+
+  async function applyStagger() {
+    if (!person || !compTeams || !studio || !date) return;
+    const unset = compTeams
+      .filter((t) => {
+        const e = entries.get(t.id);
+        return e?.acceptedAt && !e.callTime;
+      })
+      .sort((a, b) => TYPE_ORDER.indexOf(a.comp_team_type) - TYPE_ORDER.indexOf(b.comp_team_type) || a.name.localeCompare(b.name));
+    if (unset.length === 0) return;
+    setStaggering(true);
+    const [startH, startM] = staggerStart.split(":").map(Number);
+    const updates = unset.map((t, i) => {
+      const totalMin = startH * 60 + startM + i * staggerGap;
+      const hm = `${String(Math.floor(totalMin / 60) % 24).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+      return { compTeamId: t.id, entryId: entries.get(t.id)!.entryId, iso: zonedDateTimeToUTC(date, hm, studio.timezone).toISOString() };
+    });
+    await Promise.all(updates.map((u) => supabase.from("competition_entry").update({ call_time: u.iso }).eq("id", u.entryId)));
+    setEntries((prev) => {
+      const next = new Map(prev);
+      for (const u of updates) {
+        const e = next.get(u.compTeamId);
+        if (e) next.set(u.compTeamId, { ...e, callTime: u.iso });
+      }
+      return next;
+    });
+    setStaggering(false);
   }
 
   if (!person) return null;
@@ -435,10 +573,126 @@ export function CompetitionWizard() {
         </div>
       )}
 
-      {step >= 3 && (
+      {step === 3 && (() => {
+        const enteredTeams = compTeams?.filter((t) => entries.get(t.id)?.acceptedAt) ?? [];
+        return (
+          <div style={{ marginTop: 20, maxWidth: 1000 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderRadius: 12, background: "var(--sand)", marginBottom: 14 }}>
+              <span style={{ fontSize: 12, color: "var(--ink-2)", lineHeight: 1.5 }}>
+                Not every host publishes a schedule this early — it's fine to leave an entry as "Not set yet." Nothing here blocks publishing, and this step is exactly what you'd reopen later, from Manage Dance Competition, once real times arrive.
+              </span>
+            </div>
+
+            <div className="card" style={{ padding: "18px 22px", display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
+              <Eyebrow>Bulk stagger</Eyebrow>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13 }}>
+                <span style={{ color: "var(--ink-3)" }}>Start</span>
+                <input type="time" value={staggerStart} onChange={(e) => setStaggerStart(e.target.value)} style={{ fontWeight: 700 }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13 }}>
+                <span style={{ color: "var(--ink-3)" }}>Gap between Comp Teams</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={staggerGap}
+                  onChange={(e) => setStaggerGap(Number(e.target.value) || 0)}
+                  style={{ width: 60, fontWeight: 700 }}
+                />
+                <span style={{ color: "var(--ink-3)" }}>min</span>
+              </div>
+              <div style={{ flex: 1 }} />
+              <SecondaryButton onClick={applyStagger} disabled={staggering}>
+                {staggering ? "Applying…" : "Apply to entries without a time →"}
+              </SecondaryButton>
+            </div>
+
+            <div className="card" style={{ marginTop: 16, border: "1px solid var(--hairline)", borderRadius: 16, padding: "2px 22px" }}>
+              {enteredTeams.length === 0 ? (
+                <p style={{ padding: "14px 0", color: "var(--ink-2)", fontSize: 13 }}>No entries yet — go back to Entries and select at least one Comp Team.</p>
+              ) : (
+                enteredTeams.map((t, i) => {
+                  const entry = entries.get(t.id)!;
+                  const isEditing = editingId === t.id;
+                  return (
+                    <div key={t.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--hairline)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 4px" }}>
+                        <Avatar name={t.name} size={32} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>
+                            {t.name} · {TYPE_LABEL[t.comp_team_type]}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{t.dancerCount} {t.dancerCount === 1 ? "dancer" : "dancers"}</div>
+                        </div>
+                        {entry.callTime ? (
+                          <button type="button" onClick={() => (isEditing ? setEditingId(null) : startEditing(t.id))} style={timePillStyle(false)}>
+                            {studio ? `${formatTimeInZone(entry.callTime, studio.timezone).main}${formatTimeInZone(entry.callTime, studio.timezone).meridiem.toUpperCase()}` : "…"}
+                          </button>
+                        ) : (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={timePillStyle(true)}>Not set yet</span>
+                            <button type="button" onClick={() => (isEditing ? setEditingId(null) : startEditing(t.id))} style={linkButtonStyle}>
+                              {isEditing ? "Cancel" : "Set a time"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {isEditing && (
+                        <div style={{ margin: "0 4px 16px", padding: "16px 18px", background: "var(--sand)", borderRadius: 12, display: "flex", gap: 20, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+                            <PrimaryButton onClick={() => saveCallTime(t.id)} disabled={!editTime || savingTime}>
+                              {savingTime ? "Saving…" : "Save"}
+                            </PrimaryButton>
+                          </div>
+
+                          {editTime && studio && (
+                            <HeroPreview
+                              compTeamName={t.name}
+                              competitionName={name}
+                              date={date}
+                              venueName={venueName}
+                              dancerCount={t.dancerCount}
+                              callTimeHM={editTime}
+                              timezone={studio.timezone}
+                            />
+                          )}
+
+                          {conflict && (
+                            <div style={{ width: "100%", background: "var(--busy-tint)", border: "1px solid var(--busy-border)", borderRadius: 13, padding: "14px 16px" }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--busy)" }}>Conflicts with an existing event</div>
+                              <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 5, lineHeight: 1.5 }}>
+                                {conflict.title ?? "An event"} ({conflict.destinationName}) is already scheduled then — someone in this cast is booked elsewhere at that time.
+                              </div>
+                              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                                <Link to={`/add-event?movesEvent=${conflict.eventId}`} style={{ ...ghostBtnStyle }}>
+                                  Move that event
+                                </Link>
+                                <button type="button" onClick={() => saveCallTime(t.id, true)} style={ghostBtnStyle} disabled={savingTime}>
+                                  Ignore &amp; set anyway
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <p style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 12, lineHeight: 1.5 }}>
+              Any call time can still be changed after staggering — this just gets you most of the way there instead of typing each one by hand. Most studios come back to this exact screen a few weeks before the event, once the host confirms a real schedule.
+            </p>
+          </div>
+        );
+      })()}
+
+      {step === 4 && (
         <div className="card" style={{ marginTop: 20, maxWidth: 640, border: "1px solid var(--hairline)", borderRadius: 16, padding: "26px 28px" }}>
-          <p className="font-display" style={{ fontSize: 18 }}>{step === 3 ? "Call times" : "Review & publish"}</p>
-          <p style={{ color: "var(--ink-3)", marginTop: 6 }}>Not built yet — see BUILD_PLAN.md. Details and Entries are saved and real.</p>
+          <p className="font-display" style={{ fontSize: 18 }}>Review &amp; publish</p>
+          <p style={{ color: "var(--ink-3)", marginTop: 6 }}>Not built yet — see BUILD_PLAN.md. Details, Entries, and Call times are saved and real.</p>
         </div>
       )}
 
@@ -456,6 +710,7 @@ export function CompetitionWizard() {
           </PrimaryButton>
         )}
         {step === 2 && <PrimaryButton onClick={() => setStep(3)}>Continue to Call times</PrimaryButton>}
+        {step === 3 && <PrimaryButton onClick={() => setStep(4)}>Continue to Review &amp; publish</PrimaryButton>}
       </div>
     </div>
   );
@@ -525,3 +780,98 @@ const linkButtonStyle: React.CSSProperties = {
   cursor: "pointer",
   padding: 0,
 };
+
+const ghostBtnStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "8px 14px",
+  borderRadius: 9,
+  background: "var(--surface)",
+  color: "var(--ink)",
+  fontSize: 11.5,
+  fontWeight: 700,
+  border: "1px solid var(--hairline)",
+  cursor: "pointer",
+  textDecoration: "none",
+};
+
+function timePillStyle(tbd: boolean): React.CSSProperties {
+  return {
+    fontFamily: "var(--font-display)",
+    fontWeight: 700,
+    fontSize: 13.5,
+    borderRadius: 9,
+    padding: "8px 13px",
+    minWidth: 90,
+    textAlign: "center",
+    border: tbd ? "1.5px dashed var(--hairline)" : "none",
+    background: tbd ? "transparent" : "var(--sand)",
+    color: tbd ? "var(--ink-3)" : "var(--ink)",
+    cursor: tbd ? "default" : "pointer",
+  };
+}
+
+// A preview of what this Comp Team's own Home hero will show once this
+// call time is set — same info hierarchy CompHome.dc.html's real hero
+// uses (call time, venue, days-to-go), minus the photo/gradient treatment
+// (no Storage bucket exists for this studio, same root gap as
+// Deficiency #2 — dropped rather than faked, matching every other screen
+// that's hit this). Task 24 "activates" the real version of this on
+// CompTeamHome itself; this is a live preview of the same numbers while
+// still inside the wizard, not that page.
+function HeroPreview({
+  compTeamName,
+  competitionName,
+  date,
+  venueName,
+  dancerCount,
+  callTimeHM,
+  timezone,
+}: {
+  compTeamName: string;
+  competitionName: string;
+  date: string;
+  venueName: string;
+  dancerCount: number;
+  callTimeHM: string;
+  timezone: string;
+}) {
+  const callTimeLabel = (() => {
+    try {
+      const iso = zonedDateTimeToUTC(date, callTimeHM, timezone).toISOString();
+      const { main, meridiem } = formatTimeInZone(iso, timezone);
+      return `${main}${meridiem.toUpperCase()}`;
+    } catch {
+      return "—";
+    }
+  })();
+  const dateLabel = date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
+
+  return (
+    <div style={{ borderRadius: 14, overflow: "hidden", minWidth: 320, flex: 1 }}>
+      <div style={{ background: "var(--band)", color: "var(--band-ink)", padding: "14px 16px" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15 }}>{compTeamName}</div>
+        <div style={{ fontSize: 11, color: "var(--band-ink-2)", marginTop: 2 }}>
+          Entered in {competitionName || "this competition"} · {dateLabel}
+        </div>
+      </div>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--hairline)", borderTop: "none", padding: "12px 16px", display: "flex", gap: 16 }}>
+        <div>
+          <Eyebrow>Call time</Eyebrow>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 15, marginTop: 3 }}>{callTimeLabel}</div>
+        </div>
+        <div style={{ width: 1, background: "var(--hairline)" }} />
+        <div>
+          <Eyebrow>Venue</Eyebrow>
+          <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 3 }}>{venueName || "Not set yet"}</div>
+        </div>
+        <div style={{ flex: 1, textAlign: "right" }}>
+          <Eyebrow>Affects</Eyebrow>
+          <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 3 }}>
+            {dancerCount} {dancerCount === 1 ? "dancer" : "dancers"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

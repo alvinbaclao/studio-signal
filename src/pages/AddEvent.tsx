@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase, callApp } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
-import { zonedDateTimeToUTC, zonedDateKey } from "../lib/format";
+import { zonedDateTimeToUTC, zonedDateKey, zonedMinutesOfDay } from "../lib/format";
 import { friendlyPostgrestError } from "../lib/errors";
 import { Sheet } from "../components/Sheet";
 import { PrimaryButton } from "../components/PrimaryButton";
@@ -53,11 +53,28 @@ export function AddEvent() {
   const [searchParams] = useSearchParams();
   const isDirector = hasRole(person, "director");
   // Set when this screen was opened to request moving an existing event
-  // (BUILD_PLAN Task 13's move path) — no UI links here yet (no event-detail
-  // screen exists to click "Request a move" from, see DEFICIENCIES.md), but
-  // the data-layer support is real: approving a move updates this event
-  // instead of inserting a new one.
+  // (BUILD_PLAN Task 13's move path). First real entry point: the Call
+  // Times step's conflict panel (Task 23) links here for a Director. The
+  // data-layer support was already real for the instructor/approval path
+  // (RequestReviewModal.approve() has always updated the existing event
+  // rather than inserting) — this screen now completes it symmetrically
+  // for the Director-direct path: pre-fills the event's current details
+  // below, and on submit only its starts_at/ends_at/studio_space_id
+  // change, matching approve()'s own conservative "move changes when and
+  // where, not what or whose" behavior exactly.
   const movesEventId = searchParams.get("movesEvent");
+  const [moveSource, setMoveSource] = useState<{
+    title: string | null;
+    event_type: EventType;
+    team_id: string | null;
+    comp_team_id: string | null;
+    studio_wide: boolean;
+    studio_space_id: string | null;
+    starts_at: string;
+    ends_at: string;
+    notes: string | null;
+  } | null>(null);
+  const [movePrefilled, setMovePrefilled] = useState(false);
 
   const [destOptions, setDestOptions] = useState<{ teams: DestOption[]; compTeams: DestOption[]; studio: DestOption } | null>(null);
   const [destination, setDestination] = useState<DestOption | null>(null);
@@ -184,6 +201,47 @@ export function AddEvent() {
     }
   }, [destOptions, prefilled, searchParams]);
 
+  // Load the event being moved, if any.
+  useEffect(() => {
+    if (!movesEventId || !person) return;
+    let cancelled = false;
+    supabase
+      .from("event")
+      .select("title, event_type, team_id, comp_team_id, studio_wide, studio_space_id, starts_at, ends_at, notes")
+      .eq("id", movesEventId)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled && data) setMoveSource(data);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [movesEventId, person]);
+
+  // Pre-fill every field from the event being moved, once destOptions and
+  // studio (needed for the UTC-to-zoned-time conversion) are both ready.
+  // Only display fields — handleSubmit's move branch only ever writes
+  // starts_at/ends_at/studio_space_id back, regardless of what's shown here.
+  useEffect(() => {
+    if (!moveSource || !destOptions || !studio || movePrefilled) return;
+    setMovePrefilled(true);
+    setTitle(moveSource.title ?? "");
+    setTypeChoice(moveSource.event_type === "class" || moveSource.event_type === "rehearsal" ? "class_rehearsal" : "booking");
+    setNotes(moveSource.notes ?? "");
+    setDateYMD(zonedDateKey(moveSource.starts_at, studio.timezone));
+    setStartHM(hmInZone(moveSource.starts_at, studio.timezone));
+    setEndHM(hmInZone(moveSource.ends_at, studio.timezone));
+    if (moveSource.studio_space_id) setSpaceId(moveSource.studio_space_id);
+    if (moveSource.studio_wide) setDestination(destOptions.studio);
+    else if (moveSource.team_id) {
+      const match = destOptions.teams.find((t) => t.id === moveSource.team_id);
+      if (match) setDestination(match);
+    } else if (moveSource.comp_team_id) {
+      const match = destOptions.compTeams.find((c) => c.id === moveSource.comp_team_id);
+      if (match) setDestination(match);
+    }
+  }, [moveSource, destOptions, studio, movePrefilled]);
+
   // Load the studio's spaces once.
   useEffect(() => {
     if (!person) return;
@@ -269,7 +327,17 @@ export function AddEvent() {
         return;
       }
 
-      if (canCreateDirectly) {
+      if (canCreateDirectly && movesEventId) {
+        // Moving an existing event only ever changes when and where it
+        // happens — matches RequestReviewModal.approve()'s own move
+        // branch exactly, never touching title/type/destination even
+        // though those fields are shown (pre-filled, editable) above.
+        const { error } = await supabase
+          .from("event")
+          .update({ starts_at: startsAt, ends_at: endsAt, studio_space_id: spaceId })
+          .eq("id", movesEventId);
+        if (error) throw error;
+      } else if (canCreateDirectly) {
         const eventType: EventType =
           typeChoice === "class_rehearsal" ? (destination.kind === "comp_team" ? "rehearsal" : "class") : "booking";
         const { error } = await supabase.from("event").insert({
@@ -331,7 +399,7 @@ export function AddEvent() {
           <CloseIcon />
         </div>
         <h2 className="font-display" style={{ fontSize: 16.5 }}>
-          New Event
+          {movesEventId ? "Move Event" : "New Event"}
         </h2>
         <div
           role="button"
@@ -348,6 +416,11 @@ export function AddEvent() {
       </div>
 
       <div style={{ padding: "20px 20px 40px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {movesEventId && (
+          <div style={{ background: "var(--sand)", color: "var(--ink-2)", borderRadius: 12, padding: "11px 14px", fontSize: 12 }}>
+            Moving an existing event — only its date, time, and room change below; the type and destination stay the same.
+          </div>
+        )}
         {errorMsg && (
           <div
             style={{
@@ -572,6 +645,14 @@ export function AddEvent() {
       </Sheet>
     </div>
   );
+}
+
+// "HH:MM" 24h, matching <input type="time">'s value format — the inverse
+// of zonedDateTimeToUTC, for pre-filling the move form from an existing
+// event's stored UTC instant.
+function hmInZone(iso: string, timeZone: string): string {
+  const mins = zonedMinutesOfDay(iso, timeZone);
+  return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
 }
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {

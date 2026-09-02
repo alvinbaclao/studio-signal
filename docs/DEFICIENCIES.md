@@ -262,6 +262,24 @@ Schedule screens' studio-timezone rule) — `formatShortDate` itself just
 never got the same treatment. Affects every screen that calls
 `formatShortDate` on a date-only column, not just this one.
 
+### 35. Moving a conflicting event lands back on Call Times' Entries step, not where you left off
+**Found in:** Task 23.
+`CompetitionWizard`'s step is local React state, not reflected in the
+URL — `/competitions/new` and `/competition/:id/manage` both render the
+same component at whatever step its own `useState` starts at (2, for an
+existing competition). "Move that event" in the Call Times conflict panel
+navigates away to `/add-event?movesEvent=<id>` (a real route change), and
+`AddEvent`'s own submit calls `navigate(-1)` to return — which re-mounts
+`CompetitionWizard` fresh rather than restoring in-memory state, so the
+Director lands back on step 2 (Entries) instead of step 3 (Call Times)
+where they were. Confirmed live: the underlying move itself works
+correctly (verified the existing `event` row's `starts_at` actually
+changed, no duplicate created) — this is purely a "which step is showing"
+rough edge, not a data bug. Fix would mean syncing wizard step to the URL
+(e.g. `?step=3`) rather than plain component state; not done here since
+step state has worked file-locally throughout Tasks 22-23 and this is the
+first place it's visibly cost something.
+
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle
