@@ -22,11 +22,19 @@ keep it short; put detail in `docs/`.
 
 ## The four rules that must never be broken
 
-1. **The database schema is fixed. Never propose, write, or apply a
-   migration, an `ALTER TABLE`, a new RLS policy, or a schema change of any
-   kind.** If a feature seems to need one, stop and say what you think is
-   missing — the answer is almost always that the data already exists under a
-   different name. See `docs/PROJECT_KNOWLEDGE.md` for the full table list.
+1. **The database schema is fixed by default.** Before proposing a
+   migration, an `ALTER TABLE`, a new RLS policy, or any schema change,
+   stop and say what you think is missing — the answer is almost always
+   that the data already exists under a different name. See
+   `docs/PROJECT_KNOWLEDGE.md` for the full table list. When a change is
+   genuinely needed: this repo is linked to the live Supabase project via
+   the Supabase CLI (`supabase/` — `npx supabase link` already run, see
+   `supabase/config.toml`); write it as a versioned migration file under
+   `supabase/migrations/`, show the complete SQL, and get an explicit
+   go-ahead **for that specific change** before running `supabase db push`
+   (or any other command that applies it to the live database). Never
+   apply a schema change without that confirmation, even if a similar one
+   was approved earlier in the same session.
 2. **Never implement a permission check in application code as the actual
    safety boundary.** Every rule is enforced by Postgres RLS already. Hiding
    a button for someone who couldn't do the action anyway is fine and

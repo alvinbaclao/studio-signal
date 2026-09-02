@@ -8,96 +8,6 @@ under "Resolved" with the task that fixed them, don't just delete them.
 
 ## Open
 
-### 1. `message_thread` has no write path from the client
-**Found in:** Task 9.
-Adding someone to a Team's roster should plausibly grant them access to
-that Team's message thread, and Task 10 explicitly needs to create a
-`message_thread` row when a Comp Team is created. But a direct client
-insert into `message_thread` is blocked by RLS — confirmed live, even
-signed in as Director — and there's no `app.*` RPC for creating one either
-(the full function list was checked). Likely needs a database trigger on
-`team`/`comp_team` insert, or a dedicated RPC. Left `team_member` as the
-only table Task 9 writes to rather than inventing a workaround.
-
-**Confirmed again in Task 10:** a direct `comp_team` insert doesn't
-auto-create a thread via trigger either (tested live — inserted a
-comp_team, checked `message_thread` for it, found nothing), so the New
-Comp Team wizard's Review step creates `comp_team` + `comp_team_cast` +
-`comp_team_source_team` exactly as specified but skips the
-`message_thread` row the artboard's Review step promises. Everything else
-about that step (the choreographer auto-confirm trigger, the two
-comp_team_source_team rows) is real and verified live.
-
-**Confirmed again, and worse, in Task 20:** re-probed live and fresh
-before writing `MessagingInbox`/`NewMessage` — `message_thread` has no
-INSERT path from the client for **any** scope, including `direct`
-(previously only Team/Comp Team scope had been checked). Zero
-`message_thread` rows exist anywhere in the database, and there is still
-no `app.*` RPC for creating one (the full function list — `create_invite`,
-`decline_pending_person`, `find_person_by_email`, `generate_join_code`,
-`is_director`, `is_instructor`, `my_confirmed_person_ids`,
-`my_person_ids`, `my_studio_ids`, `redeem_invite`, `redeem_join_code`,
-`register_dancer`, `revoke_join_code`, `rotate_join_code`,
-`teams_i_can_see`, `teams_i_teach`, `comp_teams_i_can_see`,
-`comp_teams_i_choreograph`, `threads_i_can_see`, `visible_person_ids` —
-was checked again). Built the honest shell rather than skip or fake the
-task: `MessagingInbox` queries `threads_i_can_see()` and the real
-`message`/`thread_read_state`/`thread_participant` tables exactly as
-BUILD_PLAN.md's Touches list specifies, and correctly renders "No
-conversations yet" since `threads_i_can_see()` returns `[]` for every
-account. `NewMessage`'s People list is real (shares `useStudioDirectory`
-with `Roster`, Task 7) and its "Team & group threads" section is real
-(same `threads_i_can_see()` query, filtered to non-direct scope).
-Tapping a person calls the real `message_thread` insert rather than a
-disabled control — verified live: it throws Postgres error `42501`
-(RLS violation), caught and shown as "Direct messaging isn't set up yet
-for this studio — check back soon." rather than a raw error or a
-silently-disabled row. Task 21 (the thread view itself, broadcast rules,
-Realtime) is blocked on this same gap even more directly — there's no
-thread to open. This needs a real fix outside this codebase: either an
-RPC (`app.start_direct_thread`, one per Team/Comp Team-creation trigger
-for those scopes) or an RLS INSERT policy on `message_thread` — not
-something this codebase can add itself (CLAUDE.md's four rules).
-
-**Confirmed deeper still in Task 21:** with no `message_thread` row ever
-reachable, re-probed whether `message`, `thread_participant`, or
-`thread_read_state` could at least be written to independently — all
-three refuse too, live, as Director, against a well-formed row pointing
-at a nonexistent thread id (`42501` on each). So the entire write surface
-of Messaging is blocked, not just thread creation — confirming this is
-one root gap, not several. `MessagingThread` was built as the same kind
-of honest shell as `MessagingInbox`/`NewMessage`: a real query for the
-thread + its messages/participants/read-state, real per-scope composer
-gating (studio-wide is Director-only; Team/Comp Team is open to anyone
-who can see it, since reaching this screen at all already means RLS
-granted that visibility — a real, deliberate difference from
-`BulletinComposer`'s instructor/choreographer-only posting; direct is
-participants-only), real urgent/pin restriction (Director, or that
-Team's instructor/Comp Team's choreographer, checked live per scope),
-real mark-as-read on mount and on tab refocus, and a real Realtime
-subscription on `message` filtered to the thread. None of it can be
-exercised end-to-end with real data — Inbox is always empty, so there's
-no real thread id to navigate to. What *was* verified live: visiting
-`/messages/thread/<id>` for a nonexistent id renders a clean "Conversation
-not found" state with no console errors, and the `thread_scope` enum's
-values (`studio`/`team`/`comp_team`/`direct`) were confirmed live against
-the real Postgres enum to make sure the per-scope branching uses the
-exact right strings. The composer-gating branches, the urgent/pin
-restriction, the Realtime delivery, and the "Seen by X of Y" computation
-are all unverified against real messages for the same root reason as
-everything else in this entry — revisit and drive this screen through
-Playwright with real data once #1 is fixed.
-
-BUILD_PLAN.md's own Task 21 text also calls for a second, separate
-backend step this codebase has no path to perform: `alter publication
-supabase_realtime add table message;`, so the Realtime subscription
-above actually delivers anything instead of connecting and silently
-receiving nothing. That's DDL against the database — this codebase has
-only the anon key, never a service-role/postgres credential, and
-CLAUDE.md's four rules keep schema-adjacent changes out of this codebase
-regardless of credentials. Needs to be run from the Supabase dashboard or
-a migration outside this repo, same as Deficiency #2's Storage bucket.
-
 ### 2. No Supabase Storage bucket exists yet
 **Found in:** Task 4. **Confirmed still true in:** Task 18.
 `supabase.storage.listBuckets()` returns empty on the real project — this
@@ -377,7 +287,120 @@ environment). The empty-vs-offline distinction the code implements is
 correct in principle; the offline path itself hasn't been proven live the
 way everything else in this task was.
 
+### 32. "Seen by X of Y" doesn't count the sender's own send until reload
+**Found in:** Task 21, live-verified after Deficiency #1's fix.
+`MessagingThread`'s own last-sent-message line computes "Seen by" from
+`thread_read_state` rows fetched once at page load. `send()` calls
+`markAsRead()` right after inserting, which correctly upserts the
+sender's own `last_read_at`, but the component's local `lastReadAtByPerson`
+map isn't updated to match — so a message you just sent shows "Seen by 0
+of 2" instead of "Seen by 1 of 2" until the page reloads. Confirmed live:
+sent a direct message, saw "0 of 2" render immediately. Cosmetic only —
+the underlying read-state write is correct, just not reflected until a
+fresh load re-fetches it. Fix is a few lines in `MessagingThread.tsx`
+(update the local map after `markAsRead()` succeeds instead of only
+writing to the database) — not fixed here since it wasn't part of the
+scope of Deficiency #1's fix.
+
 ## Resolved
+
+### 1. `message_thread` has no write path from the client
+**Found in:** Task 9. **Found and fixed for real in:** the messaging
+backend-fix session following Task 21.
+Originally diagnosed (Tasks 9, 10, 20, 21) as "no RLS policy exists at
+all" for `message_thread`/`message`/`thread_participant`/
+`thread_read_state` — every insert attempt this whole build returned
+Postgres `42501`, and the anon key can't read `pg_catalog`, so there was
+no way to see the real policies to know otherwise. **That diagnosis was
+wrong.** Once this session got real Postgres access via the Supabase CLI
+(`supabase link` + `supabase db query`), the live policies turned out to
+already be correct and complete: `thread_insert`, `thread_read`,
+`message_insert`, `message_read`, `message_update`, `message_delete`,
+`thread_participant_read/write`, `read_state_rw`, all referencing real,
+correctly-written `app.*` helper functions (`is_director`,
+`teams_i_teach`, `comp_teams_i_choreograph`, `threads_i_can_see`, etc.).
+
+The real root cause of every `42501` seen this whole build: PostgREST's
+`.insert({...}).select()` pattern (`Prefer: return=representation`)
+requires the SELECT policy to also pass for the newly-inserted row within
+the *same* statement. `thread_read`'s policy scans `message_thread`
+itself (via `threads_i_can_see()`), and Postgres's RLS evaluation for a
+policy that scans its own table doesn't see a row inserted earlier in
+that same statement — so `.insert({...}).select()` against
+`message_thread` fails, even though a bare `.insert({...})` (no
+`.select()`) followed by a *separate* later `.select()` succeeds.
+Verified live both ways, through the real app's own `supabase-js` client,
+not just raw SQL. `message` doesn't have this problem — `message_read`'s
+policy doesn't scan `message` itself, so `.insert().select()` against it
+works fine and needed no change.
+
+One genuine, structural gap survived that correction: a freshly-created
+`direct`-scope thread is invisible to everyone, including its own
+creator, until a `thread_participant` row exists for it — but creating
+that row requires the thread to already be visible
+(`thread_participant_write`'s check also goes through
+`threads_i_can_see()`). A raw client can never resolve this chicken-and-
+egg problem on its own; verified live (created a bare direct-scope
+thread, then couldn't find it again via any client-side query).
+
+**The actual fix**, applied via `supabase/migrations/`
+(`20260902153111_start_direct_thread_and_realtime.sql`) and pushed with
+`supabase db push`: a single new SECURITY DEFINER RPC,
+`app.start_direct_thread(p_other_person_id uuid) returns uuid`, which
+validates both people are confirmed members of the same studio, rejects
+self-threading, is idempotent (a second call for the same pair returns
+the existing thread rather than duplicating it — verified live, two
+calls, same id returned), and creates the thread plus both
+`thread_participant` rows atomically, bypassing RLS internally. No
+existing policy was touched, dropped, or replaced. The same migration
+also ran BUILD_PLAN Task 21's `alter publication supabase_realtime add
+table message;` (confirmed via `pg_publication_tables` that it wasn't
+already enabled).
+
+`src/pages/NewMessage.tsx`'s `startDirect()` was updated to call
+`callApp('start_direct_thread', { p_other_person_id: otherId })` instead
+of its original two raw `.insert()` calls. `src/lib/database.types.ts`
+was regenerated for real via the now-linked Supabase CLI (also fixed its
+UTF-16 encoding as a side effect of using a different generation
+command). Verified live end-to-end through the actual UI (Playwright): a
+Director tapped a person in "New message," landed on a real thread with a
+real id, sent a message through the real composer, saw it render with a
+correct timestamp, and the Inbox correctly showed the new thread with its
+last-message preview — the exact flow that was always empty/blocked
+before. All test data (thread, participant rows, message, read state, the
+temporarily-confirmed test account) was cleaned up afterward.
+
+An earlier, much larger migration attempt (rewriting all four tables'
+SELECT/INSERT policies from scratch, plus redefining
+`app.threads_i_can_see()`) was drafted and pushed first, based on the
+original wrong diagnosis — it failed on a return-type mismatch
+(`threads_i_can_see()` actually returns `SETOF uuid`, not the `uuid[]`
+guessed) before anything committed (transactional rollback), which is
+what surfaced the real policies and the real root cause. That migration
+file was deleted rather than fixed and reapplied, since applying it would
+have replaced working, better-designed policies with worse
+reimplementations for no benefit. See Deficiency #32 for one small
+cosmetic gap ("Seen by" staleness right after sending) found during this
+same live-verification pass.
+
+This also required setting up a real path for schema changes in this
+repo at all: `CLAUDE.md`'s Rule 1 was updated to allow a migration under
+`supabase/migrations/`, shown in full and confirmed for that specific
+change, before running `supabase db push` — see `CLAUDE.md` and
+`docs/PROJECT_KNOWLEDGE.md`'s "THE DATABASE IS FIXED BY DEFAULT" section
+for the current wording.
+
+**Still open, deliberately not touched by this fix:** nothing in this
+codebase creates `team`/`comp_team`/`studio`-scope `message_thread` rows
+— `thread_insert`'s policy already allows a Director (any scope) or the
+relevant instructor/choreographer (team/comp_team scope) to create one,
+but no trigger and no UI action currently calls it, so those three thread
+kinds still don't exist for the one real studio/team in the database.
+This was flagged as a candidate fix in the original wrong diagnosis
+(auto-create triggers on `team`/`comp_team`/`studio` insert) but wasn't
+part of the corrected, minimal migration — revisit as its own, separate
+decision if Team/Comp Team/Studio messaging needs to actually work, not
+just Direct.
 
 ### 12. Comp Team choreographer picker excluded pending instructors
 **Found and fixed in:** Task 10.

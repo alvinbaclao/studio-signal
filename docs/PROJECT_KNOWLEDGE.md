@@ -23,15 +23,19 @@ self-serve registration (join codes, not just Director invites), a
 whole-studio destination alongside Teams and Comp Teams, a Bulletin/Essentials
 feed system, and a corrected competition data model.
 
-## THE DATABASE IS FIXED — DO NOT CHANGE IT
+## THE DATABASE IS FIXED BY DEFAULT
 Supabase already holds a complete schema with RLS on every table, smoke-tested
 end to end against a real Postgres. It was designed from a written spec
 before any UI existed.
 
-**Never create a table. Never alter or drop one. Never add a column. Never
-write or change an RLS policy. Never disable RLS.** If a feature seems to
-need a schema change, stop and say so instead of proposing a migration — the
-answer is almost always that the data already exists under a different name.
+**Default to never creating, altering or dropping a table or column, and
+never writing, changing or disabling an RLS policy.** If a feature seems to
+need a schema change, first stop and say so instead of jumping to a
+migration — the answer is almost always that the data already exists under
+a different name. When a change is genuinely needed, see CLAUDE.md's Rule 1:
+write it as a versioned migration under `supabase/migrations/`, show the
+complete SQL, and get explicit confirmation for that specific change before
+running `supabase db push`.
 
 **Never implement a permission check as the actual safety boundary in this
 codebase.** Every rule is already enforced by Row-Level Security in the
@@ -347,9 +351,12 @@ see `src/styles/tokens.css`'s comment on this too.
 - No emoji in the UI.
 
 ## Standing rules for every prompt
-- Do not create, alter or drop any table, column, policy or function. If
-  something seems missing, stop and say what you think is missing instead
-  of proposing SQL.
+- Default to not creating, altering or dropping any table, column, policy
+  or function. If something seems missing, stop and say what you think is
+  missing first. A genuinely needed change goes through CLAUDE.md's Rule 1
+  workflow (a versioned migration under `supabase/migrations/`, shown in
+  full, confirmed for that specific change before `supabase db push`) —
+  never applied silently.
 - Every INSERT must set `studio_id` explicitly. There is no default and no
   trigger that fills it in.
 - Every INSERT into `team`, `comp_team`, `post` or `essentials_item` must

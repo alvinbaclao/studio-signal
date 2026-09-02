@@ -12,17 +12,19 @@ interface ExistingThread {
 }
 
 // Ports design-reference/NewMessage.dc.html — deliberately one-to-one
-// only. Team/Comp Team/Studio threads already exist in the inbox list (or
-// would, once they can exist at all — see below), so this screen doesn't
-// duplicate them, just links out to open one. See BUILD_PLAN.md Task 20.
+// only. Team/Comp Team/Studio threads already exist in the inbox list, so
+// this screen doesn't duplicate them, just links out to open one. See
+// BUILD_PLAN.md Task 20.
 //
-// Tapping a person for real attempts a message_thread insert (scope
-// 'direct') rather than pre-emptively disabling the row — same "catch the
-// error, don't work around it" discipline as every other blocked write in
-// this build. It currently always fails: message_thread has no INSERT
-// path at all yet (docs/DEFICIENCIES.md #1), confirmed live and fresh
-// right before this screen was written, for this exact scope. The failure
-// is caught and explained honestly rather than shown as a generic error.
+// Tapping a person calls app.start_direct_thread — not a raw client
+// insert. A freshly-created direct thread is invisible to everyone,
+// including its own creator, until a thread_participant row exists for
+// it, but creating that row requires the thread to already be visible —
+// a raw client can never resolve that on its own (see
+// docs/DEFICIENCIES.md #1, resolved). The RPC is SECURITY DEFINER, so it
+// creates the thread and both participant rows atomically and is
+// idempotent — calling it again for the same pair reopens the same
+// thread instead of creating a duplicate.
 export function NewMessage() {
   const { person } = useAuth();
   const navigate = useNavigate();
@@ -74,28 +76,13 @@ export function NewMessage() {
     if (!person) return;
     setStartingId(otherId);
     setError(null);
-    try {
-      const { data: thread, error: threadErr } = await supabase
-        .from("message_thread")
-        .insert({ studio_id: person.studio_id, scope: "direct", team_id: null, comp_team_id: null, subject: null })
-        .select()
-        .single();
-      if (threadErr) throw threadErr;
-      const { error: partErr } = await supabase.from("thread_participant").insert([
-        { thread_id: thread.id, person_id: person.id },
-        { thread_id: thread.id, person_id: otherId },
-      ]);
-      if (partErr) throw partErr;
-      navigate(`/messages/thread/${thread.id}`);
-    } catch (err) {
-      setError(
-        (err as { code?: string })?.code === "42501"
-          ? "Direct messaging isn't set up yet for this studio — check back soon."
-          : "Something went wrong starting this conversation — try again."
-      );
-    } finally {
-      setStartingId(null);
+    const { data: threadId, error: rpcErr } = await callApp<string>("start_direct_thread", { p_other_person_id: otherId });
+    setStartingId(null);
+    if (rpcErr || !threadId) {
+      setError("Something went wrong starting this conversation — try again.");
+      return;
     }
+    navigate(`/messages/thread/${threadId}`);
   }
 
   if (!person) return null;
