@@ -235,6 +235,19 @@ renders inline media placeholders for any `post_media` a post has — real,
 live-queried, just currently always empty since nothing can attach media
 yet.
 
+### 31. No drag-to-reorder on Essentials lists
+**Found in:** Task 19.
+`StudioEssentials.dc.html`'s own copy says items can be "drag to reorder,
+same as the roster and Teams lists" — but no drag-and-drop exists
+anywhere else in this codebase to reuse (Roster and TeamsIndex don't have
+it either), and Task 19's own Verify step doesn't test reordering, only
+archive visibility. `sort_order` is real and respected — the list renders
+in that order, and new items append to the end (`max(sort_order) + 1` for
+that scope/destination) — there's just no interactive way to change it
+yet beyond editing the column directly. Revisit if manual reordering is
+ever needed; would need a drag library or custom pointer-event handling,
+neither of which exists in this codebase today.
+
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle

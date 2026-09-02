@@ -45,6 +45,10 @@ import { TeamMediaPage } from "./pages/TeamMediaPage";
 import { CompTeamMediaPage } from "./pages/CompTeamMediaPage";
 import { StudioMediaPage } from "./pages/StudioMediaPage";
 import { MediaUploadComposer } from "./pages/MediaUploadComposer";
+import { TeamEssentialsPage } from "./pages/TeamEssentialsPage";
+import { CompTeamEssentialsPage } from "./pages/CompTeamEssentialsPage";
+import { StudioEssentialsPage } from "./pages/StudioEssentialsPage";
+import { EssentialsComposer } from "./pages/EssentialsComposer";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -110,8 +114,8 @@ function AppRoutes() {
       <Route path="/team/:id/bulletin" element={<TeamBulletinPage />} />
       <Route path="/team/:id/media/new" element={<MediaUploadComposer kind="team" />} />
       <Route path="/team/:id/media" element={<TeamMediaPage />} />
-      <Route path="/team/:id/essentials/new" element={<Placeholder title="Add to Essentials" />} />
-      <Route path="/team/:id/essentials" element={<Placeholder title="Essentials" />} />
+      <Route path="/team/:id/essentials/new" element={<EssentialsComposer kind="team" />} />
+      <Route path="/team/:id/essentials" element={<TeamEssentialsPage />} />
       <Route path="/team/:id" element={<TeamHome />} />
       <Route path="/comp-teams/new" element={<NewCompTeamWizard />} />
       <Route path="/comp-team/:id/roster" element={<CastEntryBuilder />} />
@@ -120,8 +124,8 @@ function AppRoutes() {
       <Route path="/comp-team/:id/bulletin" element={<CompTeamBulletinPage />} />
       <Route path="/comp-team/:id/media/new" element={<MediaUploadComposer kind="comp_team" />} />
       <Route path="/comp-team/:id/media" element={<CompTeamMediaPage />} />
-      <Route path="/comp-team/:id/essentials/new" element={<Placeholder title="Add to Essentials" />} />
-      <Route path="/comp-team/:id/essentials" element={<Placeholder title="Essentials" />} />
+      <Route path="/comp-team/:id/essentials/new" element={<EssentialsComposer kind="comp_team" />} />
+      <Route path="/comp-team/:id/essentials" element={<CompTeamEssentialsPage />} />
       <Route path="/comp-team/:id" element={<CompTeamHome />} />
       <Route path="/competitions/new" element={<Placeholder title="New Competition" />} />
       <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
@@ -131,8 +135,8 @@ function AppRoutes() {
       <Route path="/studio/bulletin" element={<StudioBulletinPage />} />
       <Route path="/studio/media/new" element={<MediaUploadComposer kind="studio" />} />
       <Route path="/studio/media" element={<StudioMediaPage />} />
-      <Route path="/studio/essentials/new" element={<Placeholder title="Add to Essentials" />} />
-      <Route path="/studio/essentials" element={<Placeholder title="Essentials" />} />
+      <Route path="/studio/essentials/new" element={<EssentialsComposer kind="studio" />} />
+      <Route path="/studio/essentials" element={<StudioEssentialsPage />} />
       <Route path="/studio" element={<StudioHome />} />
       <Route path="/teams-and-dances" element={<TeamsAndDances />} />
       <Route path="/add-event" element={<AddEvent />} />
