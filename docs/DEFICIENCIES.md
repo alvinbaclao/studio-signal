@@ -28,6 +28,37 @@ Comp Team wizard's Review step creates `comp_team` + `comp_team_cast` +
 about that step (the choreographer auto-confirm trigger, the two
 comp_team_source_team rows) is real and verified live.
 
+**Confirmed again, and worse, in Task 20:** re-probed live and fresh
+before writing `MessagingInbox`/`NewMessage` — `message_thread` has no
+INSERT path from the client for **any** scope, including `direct`
+(previously only Team/Comp Team scope had been checked). Zero
+`message_thread` rows exist anywhere in the database, and there is still
+no `app.*` RPC for creating one (the full function list — `create_invite`,
+`decline_pending_person`, `find_person_by_email`, `generate_join_code`,
+`is_director`, `is_instructor`, `my_confirmed_person_ids`,
+`my_person_ids`, `my_studio_ids`, `redeem_invite`, `redeem_join_code`,
+`register_dancer`, `revoke_join_code`, `rotate_join_code`,
+`teams_i_can_see`, `teams_i_teach`, `comp_teams_i_can_see`,
+`comp_teams_i_choreograph`, `threads_i_can_see`, `visible_person_ids` —
+was checked again). Built the honest shell rather than skip or fake the
+task: `MessagingInbox` queries `threads_i_can_see()` and the real
+`message`/`thread_read_state`/`thread_participant` tables exactly as
+BUILD_PLAN.md's Touches list specifies, and correctly renders "No
+conversations yet" since `threads_i_can_see()` returns `[]` for every
+account. `NewMessage`'s People list is real (shares `useStudioDirectory`
+with `Roster`, Task 7) and its "Team & group threads" section is real
+(same `threads_i_can_see()` query, filtered to non-direct scope).
+Tapping a person calls the real `message_thread` insert rather than a
+disabled control — verified live: it throws Postgres error `42501`
+(RLS violation), caught and shown as "Direct messaging isn't set up yet
+for this studio — check back soon." rather than a raw error or a
+silently-disabled row. Task 21 (the thread view itself, broadcast rules,
+Realtime) is blocked on this same gap even more directly — there's no
+thread to open. This needs a real fix outside this codebase: either an
+RPC (`app.start_direct_thread`, one per Team/Comp Team-creation trigger
+for those scopes) or an RLS INSERT policy on `message_thread` — not
+something this codebase can add itself (CLAUDE.md's four rules).
+
 ### 2. No Supabase Storage bucket exists yet
 **Found in:** Task 4. **Confirmed still true in:** Task 18.
 `supabase.storage.listBuckets()` returns empty on the real project — this
