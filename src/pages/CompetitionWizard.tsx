@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { supabase, callApp } from "../lib/supabase";
 import { useAuth } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { zonedDateTimeToUTC, formatTimeInZone } from "../lib/format";
@@ -90,6 +90,8 @@ export function CompetitionWizard() {
   const [venueAddress, setVenueAddress] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,6 +122,7 @@ export function CompetitionWizard() {
         setVenueAddress(data.venue_address ?? "");
         setDate(data.starts_on);
         setNotes(data.registration_note ?? "");
+        setPublishedAt(data.published_at);
         setCompetitionId(data.id);
         setLoadingExisting(false);
       });
@@ -382,7 +385,7 @@ export function CompetitionWizard() {
         return;
       }
     }
-    const { error: updErr } = await supabase.from("competition_entry").update({ call_time: iso }).eq("id", existing.entryId);
+    const { error: updErr } = await callApp("set_competition_entry_call_time", { p_entry_id: existing.entryId, p_call_time: iso });
     setSavingTime(false);
     if (!updErr) {
       setEntries((prev) => new Map(prev).set(compTeamId, { ...existing, callTime: iso }));
@@ -409,7 +412,7 @@ export function CompetitionWizard() {
       const hm = `${String(Math.floor(totalMin / 60) % 24).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
       return { compTeamId: t.id, entryId: entries.get(t.id)!.entryId, iso: zonedDateTimeToUTC(date, hm, studio.timezone).toISOString() };
     });
-    await Promise.all(updates.map((u) => supabase.from("competition_entry").update({ call_time: u.iso }).eq("id", u.entryId)));
+    await Promise.all(updates.map((u) => callApp("set_competition_entry_call_time", { p_entry_id: u.entryId, p_call_time: u.iso })));
     setEntries((prev) => {
       const next = new Map(prev);
       for (const u of updates) {
@@ -419,6 +422,19 @@ export function CompetitionWizard() {
       return next;
     });
     setStaggering(false);
+  }
+
+  async function publish() {
+    if (!competitionId || publishing) return;
+    setPublishing(true);
+    setError(null);
+    const { error: pubErr } = await callApp("publish_competition", { p_competition_id: competitionId });
+    setPublishing(false);
+    if (pubErr) {
+      setError("Something went wrong publishing — try again.");
+      return;
+    }
+    setPublishedAt(new Date().toISOString());
   }
 
   if (!person) return null;
@@ -689,16 +705,69 @@ export function CompetitionWizard() {
         );
       })()}
 
-      {step === 4 && (
-        <div className="card" style={{ marginTop: 20, maxWidth: 640, border: "1px solid var(--hairline)", borderRadius: 16, padding: "26px 28px" }}>
-          <p className="font-display" style={{ fontSize: 18 }}>Review &amp; publish</p>
-          <p style={{ color: "var(--ink-3)", marginTop: 6 }}>Not built yet — see BUILD_PLAN.md. Details, Entries, and Call times are saved and real.</p>
-        </div>
-      )}
+      {step === 4 && (() => {
+        const enteredTeams = compTeams?.filter((t) => entries.get(t.id)?.acceptedAt) ?? [];
+        if (publishedAt) {
+          return (
+            <div className="card" style={{ marginTop: 20, maxWidth: 640, border: "1px solid var(--hairline)", borderRadius: 16, padding: "26px 28px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--ok-tint)", color: "var(--ok)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg style={{ width: 16, height: 16 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </div>
+                <p className="font-display" style={{ fontSize: 18 }}>Published</p>
+              </div>
+              <p style={{ color: "var(--ink-2)", marginTop: 10, fontSize: 13, lineHeight: 1.5 }}>
+                {name} is live — every entered Comp Team's Home hero now shows it, a message went out to each Comp Team's channel, and a real call-time event exists for every entry that has one set. Reopen Call Times from here any time to add or change one.
+              </p>
+              <Link to={`/competition/${competitionId}`} style={{ ...ghostBtnStyle, marginTop: 16, display: "inline-flex" }}>
+                View Competition Overview →
+              </Link>
+            </div>
+          );
+        }
+        return (
+          <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "1fr 1.15fr", gap: 22, maxWidth: 1160 }}>
+            <div>
+              <Eyebrow>{name}</Eyebrow>
+              <div className="card" style={{ marginTop: 9, border: "1px solid var(--hairline)", borderRadius: 16, padding: "20px 22px" }}>
+                <h3 style={{ fontSize: 17 }}>
+                  {venueName || "Venue not set"} · {date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""}
+                </h3>
+                <div style={{ marginTop: 14 }}>
+                  <KV label="Comp Teams entered">{enteredTeams.length}</KV>
+                  {enteredTeams.map((t) => {
+                    const ct = entries.get(t.id)?.callTime;
+                    return (
+                      <KV key={t.id} label={t.name}>
+                        {ct && studio ? `${formatTimeInZone(ct, studio.timezone).main}${formatTimeInZone(ct, studio.timezone).meridiem.toUpperCase()}` : "Not set yet"}
+                      </KV>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Eyebrow>What happens when you publish</Eyebrow>
+              <div className="card" style={{ marginTop: 9, border: "1px solid var(--hairline)", borderRadius: 16, padding: "6px 20px" }}>
+                <UpdateRow>{name} becomes visible to every confirmed studio member — nothing above is visible to anyone until you publish.</UpdateRow>
+                <UpdateRow>Each entered Comp Team's own Home hero starts showing "Competing at {name}" — call time shows once one's set, "TBD" until then.</UpdateRow>
+                <UpdateRow>A real call-time event is created for every entry that already has a time — the rest wait until you set one, here or later.</UpdateRow>
+                <UpdateRow>A message posts into each entered Comp Team's own channel announcing the entry and its call time (or that one isn't set yet).</UpdateRow>
+              </div>
+              <div style={{ marginTop: 12, padding: "13px 16px", borderRadius: 12, background: "var(--signal-tint)", fontSize: 12, color: "var(--signal-ink)", lineHeight: 1.55 }}>
+                Coming back to update call times later, once the host sends a real schedule, means reopening this same competition — not creating anything new.
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {error && <p style={{ color: "var(--busy)", marginTop: 16, fontSize: 13 }}>{error}</p>}
 
-      <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+      <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
         {step === 1 ? (
           <SecondaryButton onClick={() => navigate("/teams")}>Save &amp; exit</SecondaryButton>
         ) : (
@@ -711,6 +780,11 @@ export function CompetitionWizard() {
         )}
         {step === 2 && <PrimaryButton onClick={() => setStep(3)}>Continue to Call times</PrimaryButton>}
         {step === 3 && <PrimaryButton onClick={() => setStep(4)}>Continue to Review &amp; publish</PrimaryButton>}
+        {step === 4 && !publishedAt && (
+          <PrimaryButton onClick={publish} disabled={publishing}>
+            {publishing ? "Publishing…" : "Publish"}
+          </PrimaryButton>
+        )}
       </div>
     </div>
   );
@@ -759,6 +833,26 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ fontFamily: "var(--font-display)", fontSize: 10.5, letterSpacing: "0.11em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
       {children}
+    </div>
+  );
+}
+
+function KV({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 13, borderTop: "1px solid var(--hairline)", paddingTop: 9, marginTop: 9 }}>
+      <span style={{ color: "var(--ink-3)" }}>{label}</span>
+      <span style={{ fontWeight: 600, textAlign: "right" }}>{children}</span>
+    </div>
+  );
+}
+
+function UpdateRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 11, padding: "11px 0", borderTop: "1px solid var(--hairline)" }}>
+      <span style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--ok-tint)", color: "var(--ok)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, fontSize: 11 }}>
+        ✓
+      </span>
+      <span style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.5 }}>{children}</span>
     </div>
   );
 }

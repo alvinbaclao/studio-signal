@@ -29,11 +29,26 @@ interface CastRow {
   sourceTeamName: string | null;
 }
 
-// Ports design-reference/CompHome.dc.html — see BUILD_PLAN.md Task 15.
-// The competition hero (countdown, call time, venue) stays absent —
-// "No competition booked yet" — until Task 24 activates it; this comp
-// team's `comp_team_type` and cast count stand in for the artboard's
-// fabricated "Level 2" (comp_team has no level column).
+interface CompetingAt {
+  competitionId: string;
+  competitionName: string;
+  venueName: string | null;
+  startsOn: string;
+  callTime: string | null;
+}
+
+// Ports design-reference/CompHome.dc.html — see BUILD_PLAN.md Task 15,
+// hero activated for real in Task 24. This comp team's `comp_team_type`
+// and cast count stand in for the artboard's fabricated "Level 2"
+// (comp_team has no level column — same gap as Deficiency #24).
+//
+// The photo/gradient/countdown-pill treatment is dropped — no Storage
+// bucket exists for this studio (Deficiency #2) — same honest-subset
+// choice this whole build already makes everywhere else a photo would've
+// gone. "Competing at" only ever shows a published competition:
+// competition_read's own RLS already hides an unpublished one from
+// everyone but the Director, so this query naturally returns nothing for
+// a draft — no extra client-side check needed.
 export function CompTeamHome() {
   const { id: compTeamId } = useParams<{ id: string }>();
   const { person } = useAuth();
@@ -47,6 +62,7 @@ export function CompTeamHome() {
   const [cast, setCast] = useState<{ rows: CastRow[]; total: number } | null>(null);
   const [post, setPost] = useState<PostPreview | null | undefined>(undefined);
   const [media, setMedia] = useState<MediaPreviewItem[] | null>(null);
+  const [competingAt, setCompetingAt] = useState<CompetingAt | null | undefined>(undefined);
 
   useEffect(() => {
     if (!compTeamId || !person) return;
@@ -97,6 +113,22 @@ export function CompTeamHome() {
       if (cancelled) return;
       setUpcoming((eventRows ?? []).map((e) => ({ id: e.id, title: e.title, starts_at: e.starts_at, spaceName: e.studio_space_id ? spaceName.get(e.studio_space_id) ?? null : null })));
 
+      const { data: entryRow } = await supabase
+        .from("competition_entry")
+        .select("call_time, competition:competition_id(id, name, venue_name, starts_on, published_at)")
+        .eq("comp_team_id", compTeamId!)
+        .not("accepted_at", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const competition = entryRow?.competition as unknown as { id: string; name: string; venue_name: string | null; starts_on: string; published_at: string | null } | null;
+      setCompetingAt(
+        competition && competition.published_at
+          ? { competitionId: competition.id, competitionName: competition.name, venueName: competition.venue_name, startsOn: competition.starts_on, callTime: entryRow!.call_time }
+          : null
+      );
+
       const { data: postRow } = await supabase
         .from("post")
         .select("id, body, important, created_at, author:author_id(full_name)")
@@ -132,10 +164,54 @@ export function CompTeamHome() {
       <DestinationSubNav base={base} />
 
       <div style={{ padding: "20px 20px 40px", maxWidth: 620, display: "flex", flexDirection: "column", gap: 24 }}>
-        <div className="card" style={{ padding: "14px 16px", border: "1px solid var(--hairline)", borderRadius: 16 }}>
-          <Eyebrow>Competing at</Eyebrow>
-          <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 8 }}>No competition booked yet.</p>
-        </div>
+        {competingAt === undefined ? (
+          <div className="card" style={{ padding: "14px 16px", border: "1px solid var(--hairline)", borderRadius: 16 }}>
+            <Eyebrow>Competing at</Eyebrow>
+            <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 8 }}>Loading…</p>
+          </div>
+        ) : competingAt === null ? (
+          <div className="card" style={{ padding: "14px 16px", border: "1px solid var(--hairline)", borderRadius: 16 }}>
+            <Eyebrow>Competing at</Eyebrow>
+            <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 8 }}>No competition booked yet.</p>
+          </div>
+        ) : (
+          <div style={{ borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 14px -6px rgba(44,32,12,.22)" }}>
+            <div style={{ background: "var(--band)", color: "var(--band-ink)", padding: "16px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 999, background: "var(--signal)", color: "var(--signal-ink)", fontSize: 10.5, fontWeight: 700 }}>
+                  {daysToGo(competingAt.startsOn)}
+                </span>
+              </div>
+              <div className="font-display" style={{ fontWeight: 800, fontSize: 17, marginTop: 10 }}>{compTeam.name}</div>
+              <div style={{ fontSize: 11, color: "var(--band-ink-2)", marginTop: 2 }}>
+                Entered in {competingAt.competitionName} · {new Date(competingAt.startsOn).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              </div>
+            </div>
+            <div style={{ background: "var(--surface)", padding: "13px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Eyebrow>Competing at</Eyebrow>
+                <Link to={`/competition/${competingAt.competitionId}`} style={{ fontSize: 11, fontWeight: 700, color: "var(--signal-deep)" }}>
+                  {competingAt.competitionName} →
+                </Link>
+              </div>
+              <div style={{ display: "flex", gap: 14, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--sand)" }}>
+                <div style={{ flex: 1 }}>
+                  <Eyebrow>Call time</Eyebrow>
+                  <div className="font-display" style={{ fontWeight: 800, fontSize: 15, marginTop: 3 }}>
+                    {competingAt.callTime && studio
+                      ? `${formatTimeInZone(competingAt.callTime, studio.timezone).main}${formatTimeInZone(competingAt.callTime, studio.timezone).meridiem.toUpperCase()}`
+                      : "TBD"}
+                  </div>
+                </div>
+                <div style={{ width: 1, background: "var(--sand)" }} />
+                <div style={{ flex: 1.4 }}>
+                  <Eyebrow>Venue</Eyebrow>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 3 }}>{competingAt.venueName ?? "Not set yet"}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <ToolsRow
           base={base}
@@ -256,6 +332,17 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
+}
+
+function daysToGo(startsOnYMD: string): string {
+  const today = new Date();
+  const todayYMD = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(today);
+  const msPerDay = 86400000;
+  const diffDays = Math.round((new Date(startsOnYMD + "T00:00:00Z").getTime() - new Date(todayYMD + "T00:00:00Z").getTime()) / msPerDay);
+  if (diffDays < 0) return "Past";
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "1 day to go";
+  return `${diffDays} days to go`;
 }
 
 function dayLabel(iso: string, timeZone: string): string {

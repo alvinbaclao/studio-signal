@@ -280,6 +280,48 @@ rough edge, not a data bug. Fix would mean syncing wizard step to the URL
 step state has worked file-locally throughout Tasks 22-23 and this is the
 first place it's visibly cost something.
 
+### 36. CompetitionOverview drops the "Updates" feed and event-scoped Media
+**Found in:** Task 24.
+`CompetitionOverview.dc.html` shows two sections with no real schema
+behind them: a read-only "Updates" feed of posts scoped to the
+competition itself, and a "Photos, video & documents" gallery, also
+competition-scoped. Checked directly against the live schema: `post` has
+no `competition_id` column at all (only `team_id`/`comp_team_id`), and
+neither does `media_item` — plus no Storage bucket exists for this
+studio anyway (Deficiency #2). Both sections are dropped entirely rather
+than faked, same as every other schema-shaped gap in this build.
+Consequence: BUILD_PLAN's "Add/Upload controls for Director/entered-
+Comp-Team's-choreographer" have nothing left to add or upload to, so the
+page is read-only for everyone — no role-gating needed. Revisit only if
+`post`/`media_item` ever gain a real competition scope (a schema change,
+so out of this codebase's own reach regardless).
+
+### 37. Call-time events use a fixed 30-minute placeholder duration
+**Found in:** Task 24.
+`competition_entry.call_time` is a single instant (when to arrive), and
+the schema has no separate performance-duration field — the real
+`call_time` event this creates (`app._sync_call_time_event`) needs a
+NOT NULL `ends_at`, so it uses `starts_at + 30 minutes` as a documented,
+arbitrary default. Real call times are rarely exactly 30 minutes;
+revisit if a real duration signal is ever added to the schema (e.g. on
+`competition_entry` itself).
+
+### 38. `DirectorHome`'s "Today & this week, studio-wide" never shows real events
+**Found in:** Task 24, while verifying call times appear correctly across
+Home/Schedule — pre-existing, unrelated to this task's own work.
+The card's body text ("Nothing scheduled this week.") is a hardcoded
+string in `DirectorHome.tsx`, not driven by any query — confirmed live:
+a real, RLS-visible `event` on the current week (the very call-time
+event this task creates) still rendered the same static "Nothing
+scheduled" text. `HomeUnified`'s own "This week" section, right next to
+it in the non-Director home, is real and correctly picked up the same
+event in the same test. Predates Task 24 (this card has looked this way
+since Task 3, before the real event system existed) — flagging now
+because this is the first time real data existed to expose it as a gap
+rather than a reasonable-looking empty state. Revisit by wiring it to
+the same RLS-scoped, no-destination-filter `event` query `HomeUnified`
+and `GlobalSchedule` both already use.
+
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle

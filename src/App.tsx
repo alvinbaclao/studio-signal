@@ -10,7 +10,6 @@ import { AuthProvider, useAuth, hasRole } from "./lib/AuthProvider";
 import { SignIn } from "./pages/SignIn";
 import { Waiting } from "./pages/Waiting";
 import { NotLinked } from "./pages/NotLinked";
-import { Placeholder } from "./pages/Placeholder";
 import { InviteRedeem } from "./pages/InviteRedeem";
 import { JoinRedeem } from "./pages/JoinRedeem";
 import { DirectorHome } from "./pages/DirectorHome";
@@ -53,6 +52,7 @@ import { MessagingInbox } from "./pages/MessagingInbox";
 import { NewMessage } from "./pages/NewMessage";
 import { MessagingThread } from "./pages/MessagingThread";
 import { CompetitionWizard } from "./pages/CompetitionWizard";
+import { CompetitionOverview } from "./pages/CompetitionOverview";
 import { Shell } from "./components/Shell";
 
 function Gate({ children }: { children: React.ReactNode }) {
@@ -134,7 +134,7 @@ function AppRoutes() {
       <Route path="/comp-team/:id/essentials" element={<CompTeamEssentialsPage />} />
       <Route path="/comp-team/:id" element={<CompTeamHome />} />
       <Route path="/competitions/new" element={<CompetitionWizard />} />
-      <Route path="/competition/:id" element={<Placeholder title="Competition" />} />
+      <Route path="/competition/:id" element={<CompetitionOverview />} />
       <Route path="/competition/:id/manage" element={<CompetitionWizard />} />
       <Route path="/studio/schedule" element={<StudioSchedulePage />} />
       <Route path="/studio/bulletin/new" element={<BulletinComposer kind="studio" />} />

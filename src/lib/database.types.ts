@@ -20,6 +20,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _sync_call_time_event: {
+        Args: { p_entry_id: string }
+        Returns: undefined
+      }
       comp_teams_i_can_see: { Args: never; Returns: string[] }
       comp_teams_i_choreograph: { Args: never; Returns: string[] }
       create_invite: {
@@ -45,6 +49,10 @@ export type Database = {
       my_confirmed_person_ids: { Args: never; Returns: string[] }
       my_person_ids: { Args: never; Returns: string[] }
       my_studio_ids: { Args: never; Returns: string[] }
+      publish_competition: {
+        Args: { p_competition_id: string }
+        Returns: undefined
+      }
       redeem_invite: { Args: { p_token: string }; Returns: string }
       redeem_join_code: {
         Args: {
@@ -74,6 +82,10 @@ export type Database = {
           p_studio_id: string
         }
         Returns: string
+      }
+      set_competition_entry_call_time: {
+        Args: { p_call_time: string; p_entry_id: string }
+        Returns: undefined
       }
       start_direct_thread: {
         Args: { p_other_person_id: string }
