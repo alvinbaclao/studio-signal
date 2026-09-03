@@ -12,10 +12,23 @@ export function ageFromDob(dob: string | null): number | null {
 
 // Compact "26 Aug" form for inline meta captions — see PROJECT_KNOWLEDGE.md's
 // "Thursday 27 Aug" convention; the weekday is dropped here since these are
-// short registered/confirmed-on captions, not schedule rows.
+// short registered/confirmed-on captions, not schedule rows. Used on both
+// full timestamps (created_at/updated_at/expires_at — device-local is
+// correct there, same as "2 hours ago") and plain date-only columns
+// (date_of_birth, competition.starts_on). A bare "YYYY-MM-DD" has no time
+// or timezone component at all — `new Date("2027-09-09")` parses it as UTC
+// midnight, which renders a day early for any device west of UTC. Parsing
+// the Y/M/D digits directly into the local-time Date constructor (not the
+// ISO-string one) avoids that conversion entirely, since there's no
+// instant to convert — it's just a calendar date. See docs/DEFICIENCIES.md
+// #34.
 export function formatShortDate(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(iso);
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
 // ---------------------------------------------------------------------------

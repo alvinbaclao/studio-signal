@@ -1,7 +1,19 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useStudio } from "../lib/useStudio";
+import { formatTimeInZone, weekRangeInZone } from "../lib/format";
 import { Band } from "../components/Band";
 import { Avatar } from "../components/Avatar";
 import { useDirectorHome, type DirectorHomeData } from "../lib/useDirectorHome";
+
+interface WeekEvent {
+  id: string;
+  title: string | null;
+  event_type: string;
+  starts_at: string;
+  spaceName: string | null;
+}
 
 // Ports design-reference/DirectorHome.dc.html. The dark band aggregates
 // real pending-decision counts (pending person registrations, pending
@@ -13,6 +25,36 @@ import { useDirectorHome, type DirectorHomeData } from "../lib/useDirectorHome";
 // both show the exact same real counts, not two queries that could drift.
 export function DirectorHome() {
   const { data, decisionCards, isEmptyStudio } = useDirectorHome();
+  const studio = useStudio();
+  const [weekEvents, setWeekEvents] = useState<WeekEvent[] | null>(null);
+
+  // Real, RLS-scoped, no-destination-filter event query — same shape
+  // HomeUnified/GlobalSchedule already use — replacing the card's old
+  // hardcoded "Nothing scheduled this week." (docs/DEFICIENCIES.md #38).
+  useEffect(() => {
+    if (!studio) return;
+    let cancelled = false;
+    async function load() {
+      const { start, end } = weekRangeInZone(new Date(), studio!.timezone);
+      const { data: eventRows } = await supabase
+        .from("event")
+        .select("id, title, event_type, starts_at, studio_space_id")
+        .is("cancelled_at", null)
+        .gte("starts_at", start.toISOString())
+        .lt("starts_at", end.toISOString())
+        .order("starts_at");
+      if (cancelled) return;
+      const spaceIds = [...new Set((eventRows ?? []).map((e) => e.studio_space_id).filter((v): v is string => !!v))];
+      const { data: spaceRows } = spaceIds.length > 0 ? await supabase.from("studio_space").select("id, name").in("id", spaceIds) : { data: [] as { id: string; name: string }[] };
+      if (cancelled) return;
+      const spaceName = new Map((spaceRows ?? []).map((s) => [s.id, s.name]));
+      setWeekEvents((eventRows ?? []).map((e) => ({ id: e.id, title: e.title, event_type: e.event_type, starts_at: e.starts_at, spaceName: e.studio_space_id ? spaceName.get(e.studio_space_id) ?? null : null })));
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [studio]);
 
   return (
     <div style={{ padding: "18px 34px 30px" }}>
@@ -128,9 +170,40 @@ export function DirectorHome() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="card" style={{ border: "1px solid var(--hairline)", borderRadius: 16, padding: "18px 22px 20px" }}>
             <Eyebrow>Today &amp; this week, studio-wide</Eyebrow>
-            <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 12 }}>
-              Nothing scheduled this week.
-            </p>
+            {weekEvents === null ? (
+              <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 12 }}>Loading…</p>
+            ) : weekEvents.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 12 }}>
+                Nothing scheduled this week.
+              </p>
+            ) : (
+              <>
+                <div style={{ marginTop: 12 }}>
+                  {weekEvents.slice(0, 5).map((e, i) => (
+                    <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderTop: i === 0 ? "none" : "1px solid var(--hairline)" }}>
+                      <div className="font-display" style={{ fontWeight: 700, fontSize: 12.5, color: "var(--ink-2)", width: 84, flexShrink: 0 }}>
+                        {weekdayShort(e.starts_at, studio!.timezone)} {formatTimeInZone(e.starts_at, studio!.timezone).main}
+                        {formatTimeInZone(e.starts_at, studio!.timezone).meridiem}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600 }}>{e.title ?? eventTypeLabel(e.event_type)}</div>
+                      {e.spaceName && <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{e.spaceName}</div>}
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    marginTop: 13,
+                    paddingTop: 13,
+                    borderTop: "1px solid var(--hairline)",
+                    fontSize: 12,
+                    color: "var(--ink-2)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {weekEvents.length} this week · <Link to="/schedule">View full schedule &rsaquo;</Link>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="card" style={{ border: "1px solid var(--hairline)", borderRadius: 16, padding: "18px 22px 20px" }}>
@@ -269,6 +342,17 @@ function SetupChecklist({ data }: { data: DirectorHomeData }) {
       </div>
     </div>
   );
+}
+
+function weekdayShort(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(new Date(iso));
+}
+
+function eventTypeLabel(eventType: string): string {
+  if (eventType === "class") return "Class";
+  if (eventType === "rehearsal") return "Rehearsal";
+  if (eventType === "call_time") return "Call time";
+  return "Studio time";
 }
 
 function Eyebrow({ children }: { children: React.ReactNode }) {

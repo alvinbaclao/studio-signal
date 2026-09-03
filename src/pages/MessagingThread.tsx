@@ -168,7 +168,32 @@ export function MessagingThread() {
 
   async function markAsRead() {
     if (!person || !id) return;
-    await supabase.from("thread_read_state").upsert({ thread_id: id, person_id: person.id, last_read_at: new Date().toISOString() });
+    // "now" (a Postgres special date/time value, not the now() function —
+    // no parens) is resolved server-side at cast time, same clock
+    // message.created_at comes from. Comparing a *client*-generated
+    // timestamp against that server clock is racy by however far the two
+    // drift, which is exactly what caused #32: a message sent and marked
+    // read in the same call could get a client timestamp a few ms *behind*
+    // the server's created_at for that same message, still showing "Seen
+    // by 0" even with a same-tick local-state update. Reading back the
+    // server-confirmed value (not just echoing what was sent) keeps both
+    // sides of seenLabel's comparison on the same clock. A plain
+    // `.upsert({thread_id, person_id})` without last_read_at would only
+    // apply the column's `now()` default on first insert — PostgREST's
+    // merge-duplicates upsert skips omitted columns on the conflict-update
+    // path, so it would never advance on a second read.
+    const { data, error } = await supabase
+      .from("thread_read_state")
+      .upsert({ thread_id: id, person_id: person.id, last_read_at: "now" })
+      .select("last_read_at")
+      .single();
+    if (!error && data) {
+      setLastReadAtByPerson((prev) => {
+        const next = new Map(prev);
+        next.set(person.id, data.last_read_at);
+        return next;
+      });
+    }
   }
 
   useEffect(() => {

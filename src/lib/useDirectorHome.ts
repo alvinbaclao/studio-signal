@@ -66,8 +66,8 @@ export function useDirectorHome(): { data: DirectorHomeData | null; decisionCard
         publishedCompetitions,
       ] = await Promise.all([
         supabase.from("person").select("id", { count: "exact", head: true }).eq("status", "confirmed"),
-        supabase.from("team").select("id", { count: "exact", head: true }),
-        supabase.from("comp_team").select("id", { count: "exact", head: true }),
+        supabase.from("team").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("comp_team").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("competition").select("id", { count: "exact", head: true }),
         supabase.from("person").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("booking_request").select("id", { count: "exact", head: true }).eq("status", "pending"),

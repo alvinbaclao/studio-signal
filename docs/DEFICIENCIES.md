@@ -202,23 +202,6 @@ shape as Deficiency #20's "no entry point for Request a move." Revisit
 once there's a real screen for an instructor to reach a Comp Team they
 choreograph and propose entering it somewhere.
 
-### 34. Competition dates can render a day early (UTC-parse / local-render mismatch)
-**Found in:** Task 22, on real data for the first time.
-`TeamsIndex.tsx`'s existing `formatShortDate` (`src/lib/format.ts`,
-already shipped since Task 8) does `new Date(iso).toLocaleDateString(...)`
-on a plain date-only string like `"2027-09-09"` — that parses as UTC
-midnight, then renders in the *device's* local timezone, so anyone west
-of UTC sees the previous day. Confirmed live: entered "Sep 9, 2027" in
-`CompetitionWizard`'s Details step, `starts_on` stored correctly as
-`2027-09-09`, but `/teams`' competition row displayed "8 Sept." This bug
-predates Task 22 — it's been sitting in already-shipped code since no
-`competition` row existed to trigger it until now. The rest of this
-codebase's date handling already has a real fix for exactly this class of
-bug (`zonedDateKey`/`zonedMidnightUTC` in the same file, built for the
-Schedule screens' studio-timezone rule) — `formatShortDate` itself just
-never got the same treatment. Affects every screen that calls
-`formatShortDate` on a date-only column, not just this one.
-
 ### 35. Moving a conflicting event lands back on Call Times' Entries step, not where you left off
 **Found in:** Task 23.
 `CompetitionWizard`'s step is local React state, not reflected in the
@@ -262,22 +245,6 @@ NOT NULL `ends_at`, so it uses `starts_at + 30 minutes` as a documented,
 arbitrary default. Real call times are rarely exactly 30 minutes;
 revisit if a real duration signal is ever added to the schema (e.g. on
 `competition_entry` itself).
-
-### 38. `DirectorHome`'s "Today & this week, studio-wide" never shows real events
-**Found in:** Task 24, while verifying call times appear correctly across
-Home/Schedule — pre-existing, unrelated to this task's own work.
-The card's body text ("Nothing scheduled this week.") is a hardcoded
-string in `DirectorHome.tsx`, not driven by any query — confirmed live:
-a real, RLS-visible `event` on the current week (the very call-time
-event this task creates) still rendered the same static "Nothing
-scheduled" text. `HomeUnified`'s own "This week" section, right next to
-it in the non-Director home, is real and correctly picked up the same
-event in the same test. Predates Task 24 (this card has looked this way
-since Task 3, before the real event system existed) — flagging now
-because this is the first time real data existed to expose it as a gap
-rather than a reasonable-looking empty state. Revisit by wiring it to
-the same RLS-scoped, no-destination-filter `event` query `HomeUnified`
-and `GlobalSchedule` both already use.
 
 ### 39. `DirectorTeamsMobile` drops the "new posts"/"all read" marker
 **Found in:** Task 25.
@@ -350,35 +317,6 @@ environment). The empty-vs-offline distinction the code implements is
 correct in principle; the offline path itself hasn't been proven live the
 way everything else in this task was.
 
-### 32. "Seen by X of Y" doesn't count the sender's own send until reload
-**Found in:** Task 21, live-verified after Deficiency #1's fix.
-`MessagingThread`'s own last-sent-message line computes "Seen by" from
-`thread_read_state` rows fetched once at page load. `send()` calls
-`markAsRead()` right after inserting, which correctly upserts the
-sender's own `last_read_at`, but the component's local `lastReadAtByPerson`
-map isn't updated to match — so a message you just sent shows "Seen by 0
-of 2" instead of "Seen by 1 of 2" until the page reloads. Confirmed live:
-sent a direct message, saw "0 of 2" render immediately. Cosmetic only —
-the underlying read-state write is correct, just not reflected until a
-fresh load re-fetches it. Fix is a few lines in `MessagingThread.tsx`
-(update the local map after `markAsRead()` succeeds instead of only
-writing to the database) — not fixed here since it wasn't part of the
-scope of Deficiency #1's fix.
-
-### 40. DirectorHome's "Studio at a glance" counts inactive Teams/Comp Teams
-**Found in:** Task 25, while cross-checking `DirectorTeamsMobile` (newly
-built) against `TeamsIndex`'s numbers — both correctly agreed with each
-other, which is what surfaced this.
-`useDirectorHome`'s `teamCount`/`compTeamCount` (`DirectorHome`'s "Studio
-at a glance" tiles) query `team`/`comp_team` with no `is_active` filter,
-while `useTeamsIndexData` (`TeamsIndex`, and now `DirectorTeamsMobile`)
-correctly filters to `is_active = true`. Concretely: this studio has 3
-deactivated leftover Team rows from earlier build/test work — DirectorHome
-shows "3 Teams," TeamsIndex and DirectorTeamsMobile both correctly show
-"0." Pre-existing since Task 3, untouched by this task's own hook
-extraction (moved verbatim). Revisit by adding the same `.eq("is_active",
-true)` DirectorHome's other counts already imply.
-
 ### 41. Pending/declined people can browse catalog names (Team, Comp Team, Dance Style, Studio Space, Season, Studio) studio-wide
 **Found in:** Task 27's cross-account audit, while investigating the
 content-leak fix below (Resolved, this same task).
@@ -401,6 +339,78 @@ fix). If this should also be tightened, the same pattern applies: swap
 task) in each of these six policies.
 
 ## Resolved
+
+### 34. Competition dates rendered a day early (UTC-parse / local-render mismatch)
+**Found in:** Task 22. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 2).
+`formatShortDate` (`src/lib/format.ts`) did `new Date(iso).toLocaleDateString(...)`
+on plain date-only strings like `"2027-09-09"` — parsed as UTC midnight,
+rendered in the device's local timezone, a day early for anyone west of
+UTC. Fixed by detecting a bare `YYYY-MM-DD` input and building the `Date`
+from its Y/M/D digits via the local-time constructor (`new Date(year,
+month, day)`) instead of the ISO-string one — there's no instant to
+convert for a pure calendar date, so this sidesteps timezone conversion
+entirely rather than doing it correctly. Timestamp inputs (`created_at`/
+`updated_at`/`expires_at`) are untouched — device-local rendering is
+correct for those, same as "2 hours ago." Verified with `TZ` set to
+Pacific/Honolulu, America/Los_Angeles, and Asia/Tokyo: date-only inputs
+render identically across all three (no drift); a real timestamp still
+correctly varies by zone. Reproduced the original bug against the old
+code first (`America/Los_Angeles` showed "Sep 8" for a stored "2027-09-09")
+to confirm the fix actually changes behavior, not just passes by luck.
+
+### 38. `DirectorHome`'s "Today & this week, studio-wide" never showed real events
+**Found in:** Task 24. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 2).
+The card's body text was a hardcoded "Nothing scheduled this week."
+string, never driven by any query. Wired to the same real, RLS-scoped,
+no-destination-filter `event` query `HomeUnified`/`GlobalSchedule`/
+`DirectorHomeMobile` already use (`weekRangeInZone`, studio timezone),
+rendering weekday/time/title/space per row with a "View full schedule"
+link. Verified live: seeded a real event this week, card correctly
+listed it; removed it afterward.
+
+### 32. "Seen by X of Y" didn't count the sender's own send until reload
+**Found in:** Task 21. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 2).
+`markAsRead()` correctly upserted `thread_read_state` but never updated
+the component's local `lastReadAtByPerson` map, so a just-sent message
+showed "Seen by 0 of 2" until reload. First fix attempt (writing the
+client's own `new Date().toISOString()` into local state) turned out to
+still race: `last_read_at` has a server-side `now()` default, and
+comparing a client-generated timestamp against `message.created_at`
+(server-generated) is only reliable to within however far the two clocks
+drift — confirmed live via a direct DB check, an 8ms client-behind-server
+skew reproduced the exact same "Seen by 0" symptom even with local state
+updating immediately. Real fix: send `last_read_at: "now"` (Postgres's
+special date/time literal, evaluated server-side at cast time — not the
+`now()` function) in the upsert instead of a client timestamp, then read
+back the server-confirmed value via `.select().single()` for the local
+state update, keeping both sides of the "seen" comparison on the same
+clock. (A plain `.upsert({thread_id, person_id})` with `last_read_at`
+omitted was considered and rejected: PostgREST's merge-duplicates upsert
+only applies a column's default on first insert, not on the
+conflict-update path, so it would work once and then never advance
+again.) Verified live: sent a message, saw "Seen by 1 of 2" immediately,
+no reload, on both a fresh read-state row and a re-read against an
+existing one.
+
+### 40. `DirectorHome`'s "Studio at a glance" counted inactive Teams/Comp Teams
+**Found in:** Task 25. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 2).
+`useDirectorHome`'s `teamCount`/`compTeamCount` queried `team`/`comp_team`
+with no `is_active` filter, while `useTeamsIndexData` already correctly
+filtered to `is_active = true`. Added the same `.eq("is_active", true)`.
+Verified live: went from "0 Teams" (all 3 real Team rows were inactive at
+the time) to correctly showing "1" once Jazz II was confirmed active —
+which surfaced a separate loose end from Task 27: Jazz II's reactivation
+had been in the very first, failed seed script and silently dropped from
+every retry after that script rolled back, so it had been inactive the
+whole time despite appearing correctly in destination-detail screens
+(which don't filter by `is_active`). Fixed directly via SQL, unrelated to
+this deficiency's own code change.
+
+
 
 ### 7. Parent-facing confirm/decline visibility, verified end-to-end
 **Found in:** Task 5. **Verified in:** Task 27's cross-account audit
