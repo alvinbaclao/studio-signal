@@ -8,16 +8,6 @@ under "Resolved" with the task that fixed them, don't just delete them.
 
 ## Open
 
-### 4. Duplicate-person detection not implemented in the confirm queue
-**Found in:** Task 5.
-`DirectorConfirmQueue.dc.html` shows a "Might match Noah W. already on
-roster" warning chip on one pending dancer. No matching algorithm
-(fuzzy name match? exact match + DOB?) was specified anywhere in
-`BUILD_PLAN.md` or `PROJECT_KNOWLEDGE.md`, so it was left out entirely —
-every dancer row in the real `ConfirmQueue` gets the same Confirm/Decline
-treatment regardless of possible duplicates. Worth a real design decision
-before building, not a guess.
-
 ### 6. Invite emails aren't sent automatically
 **Found in:** Task 6.
 `InviteSomeone` generates a raw invite link that the Director must copy
@@ -41,22 +31,6 @@ with nothing real to attach to, "Call time" was left out entirely, same
 choice as every other schema-shaped gap in this project. Revisit once
 competition/competition_entry management exists (Task 22+).
 
-### 16. Recurring events aren't supported on the Director's direct-create path
-**Found in:** Task 12.
-`AddEvent.dc.html` shows a "Repeats weekly … through Nov 30" toggle, but
-the `event` table has no `repeats` column and no end-date column at
-all — only `booking_request` has a `repeats` enum (`once`/`weekly`/
-`biweekly`), with no end-date column either. A Director creating a direct
-event can therefore only create one occurrence at a time; the toggle is
-wired up only on the instructor's `booking_request` path, where the
-column genuinely exists (an approving Director decides in Task 13 how to
-actually fulfill a "weekly" request). Building client-side multi-row
-generation for the Director path was deliberately avoided — there's no
-schema-backed way to later reference, edit or cancel "the whole series"
-as a unit, which is exactly the kind of half-real feature this project
-avoids. Worth a real design decision (a `repeats`/`series_id` column?) if
-recurring Director-created events are needed later.
-
 ### 17. Add Event's "Notify" toggle is cosmetic only
 **Found in:** Task 12.
 `AddEvent.dc.html`'s "Push to {team} families" toggle has no backing —
@@ -79,22 +53,6 @@ data-layer side is real and verified live: `AddEvent` accepts
 of inserting a new one (confirmed via a direct DB check: same event id,
 same `created_at`, only the changed fields updated). Revisit once an
 event-detail/edit screen exists to link from.
-
-### 21. "Propose a different time or room" is decline-with-a-note, not a real counter-proposal
-**Found in:** Task 13.
-`ProposeMoveSheet.dc.html`'s actual content (as opposed to BUILD_PLAN's
-one-line gloss, which describes a different interaction entirely — see
-above) shows the Director picking an open alternate slot and sending Jamie
-"a proposal to accept or counter — it doesn't book anything until she
-confirms." There's no schema support for this at all: `booking_status`
-has no "countered"/"proposed" value, and `booking_request` has no columns
-to store a counter-proposed time or space. Built the honest subset
-instead: Decline carries an optional free-text note (the real
-`decline_reason` column), pre-labelled as a place to suggest a better
-time or room. This is real and persisted (the requester can already read
-their own declined request via existing RLS), just not the formal
-accept/counter loop the mockup depicts — that would need real schema
-support to build honestly.
 
 ### 22. Unified Home's "Needs your attention" band and "Next up" are narrower than the artboard
 **Found in:** Task 14. **Narrowed in:** the deficiencies-backlog pass
@@ -247,6 +205,48 @@ confirming the message appears (hard to simulate reliably in this
 environment). The empty-vs-offline distinction the code implements is
 correct in principle; the offline path itself hasn't been proven live the
 way everything else in this task was.
+
+## Decided against building
+
+Real gaps, but the user explicitly chose not to build them (as opposed to
+"Resolved," where the gap was actually fixed) — kept here so the decision
+and its reasoning aren't lost, not re-litigated next time this list comes
+up.
+
+### 4. Duplicate-person detection in the Confirm queue
+**Found in:** Task 5. **Decided against in:** the deficiencies-backlog
+pass following Task 27 (Group 5).
+`DirectorConfirmQueue.dc.html` shows a "Might match Noah W. already on
+roster" warning chip on one pending dancer, but no matching algorithm
+(fuzzy name match? exact match + DOB?) was ever specified in
+`BUILD_PLAN.md` or `PROJECT_KNOWLEDGE.md`. Decision: drop it rather than
+guess at an algorithm — every dancer row in the real `ConfirmQueue` gets
+the same Confirm/Decline treatment regardless of possible duplicates.
+Revisit only if this becomes a real, observed problem.
+
+### 16. Recurring events on the Director's direct-create path
+**Found in:** Task 12. **Decided against in:** the deficiencies-backlog
+pass following Task 27 (Group 5).
+`AddEvent.dc.html` shows a "Repeats weekly … through Nov 30" toggle, but
+`event` has no `repeats`/end-date columns (only `booking_request` does,
+for instructor-submitted requests). Decision: leave the Director's
+direct-create path single-occurrence-only — no schema change. A Director
+creating a recurring class either re-adds it each time or uses the
+existing `booking_request` `repeats` path.
+
+### 21. Real accept/counter-proposal loop for booking requests
+**Found in:** Task 13. **Decided against in:** the deficiencies-backlog
+pass following Task 27 (Group 5).
+`ProposeMoveSheet.dc.html` shows the Director picking an open alternate
+slot and sending a real accept/counter proposal — no schema support
+exists (`booking_status` has no "countered"/"proposed" value,
+`booking_request` has no counter-time/space columns). Decision: keep the
+honest subset already built (Decline with an optional free-text note,
+the real `decline_reason` column, pre-labelled as a place to suggest a
+better time/room) rather than build the real counter-proposal loop now —
+it would need the biggest schema surface of anything in this backlog
+(new status value + new columns + a real accept/counter/confirm UI).
+Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
 
