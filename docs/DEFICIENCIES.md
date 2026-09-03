@@ -153,17 +153,6 @@ literal "single-tap upsert/delete" BUILD_PLAN.md Task 17 describes: one
 fixed reaction kind (👍), tap to add your own, tap again to remove it.
 Revisit if a real multi-reaction picker is ever specified concretely.
 
-### 9. No multi-select filter sheet on the global Schedule
-**Found in:** Task 11.
-`Schedule.dc.html` shows a "Filter" chip ("6 of 8") opening a sheet to
-narrow the global Schedule down to specific Teams/Comp Teams — there's a
-whole `FilterSheet.dc.html` artboard for it. `BUILD_PLAN.md`'s Task 11
-text only describes the two query shapes (global vs per-destination) and
-doesn't mention filtering, so it was left out entirely — the global
-Schedule always shows everything `event_read`'s RLS policy returns, no
-narrowing. Worth building if a real account ever has enough going on that
-the unfiltered agenda gets noisy.
-
 ### 10. No per-event role indicator on Schedule rows
 **Found in:** Task 11.
 The reference artboards color-code each row with a dot showing whether an
@@ -227,6 +216,26 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 9. Global Schedule now has a real Filter sheet
+**Found in:** Task 11. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+Added the "All"/"Filter" chip pair and bottom sheet from `Schedule.dc.html`/
+`FilterSheet.dc.html`: a real checkbox list of every Team/Comp Team the
+viewer's Schedule includes (Director-vs-not branching mirrors
+`HomeUnified`'s own — a Director isn't personally a member of anything,
+so `teams_i_can_see()` is empty for them, same as Deficiency #18), narrows
+`GlobalSchedule`'s fetched events client-side by `team_id`/`comp_team_id`
+(studio-wide events always included, never filtered out). `ScheduleView`
+itself deliberately ignores `fetchEvents` identity changes (only
+range/date navigation re-fetches), so the filter is applied via a `key`
+remount rather than expecting a prop change alone to refetch. Verified
+live: two real events on two different destinations, unfiltered showed
+both, filtering to one destination correctly narrowed to just that one;
+confirmed no regression for a Director's studio-wide destination list
+either.
+
+
 
 ### 39. `DirectorTeamsMobile` now shows a real "new posts"/"all read" marker
 **Found in:** Task 25. **Fixed in:** the deficiencies-backlog pass
