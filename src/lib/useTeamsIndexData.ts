@@ -14,6 +14,7 @@ export interface CompTeamRow {
   id: string;
   name: string;
   comp_team_type: string;
+  level: string | null;
   choreographerNames: string[];
   sourceTeamNames: string[];
   dancerCount: number;
@@ -59,7 +60,7 @@ export function useTeamsIndexData(): { data: IndexData | null; currentSeasonId: 
       supabase.from("team").select("id, name, level").eq("studio_id", studioId).eq("is_active", true).order("name"),
       supabase
         .from("comp_team")
-        .select("id, name, comp_team_type")
+        .select("id, name, comp_team_type, level")
         .eq("studio_id", studioId)
         .eq("is_active", true)
         .order("name"),
@@ -131,6 +132,7 @@ export function useTeamsIndexData(): { data: IndexData | null; currentSeasonId: 
         id: c.id,
         name: c.name,
         comp_team_type: c.comp_team_type,
+        level: c.level,
         choreographerNames: cast
           .filter((r) => r.role === "choreographer")
           .map((r) => nameById.get(r.person_id))

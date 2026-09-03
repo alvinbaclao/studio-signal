@@ -15,6 +15,7 @@ import { Avatar } from "../components/Avatar";
 interface CompTeamInfo {
   name: string;
   comp_team_type: string;
+  level: string | null;
 }
 
 interface UpcomingRow {
@@ -80,7 +81,7 @@ export function CompTeamHome() {
 
     async function load() {
       const [{ data: compTeamRow }, { data: castRows }] = await Promise.all([
-        supabase.from("comp_team").select("name, comp_team_type").eq("id", compTeamId!).single(),
+        supabase.from("comp_team").select("name, comp_team_type, level").eq("id", compTeamId!).single(),
         supabase.from("comp_team_cast").select("person_id, role, person:person_id(id, full_name)").eq("comp_team_id", compTeamId!),
       ]);
       if (cancelled || !compTeamRow) return;
@@ -216,7 +217,10 @@ export function CompTeamHome() {
 
   return (
     <div>
-      <DestinationHeader name={compTeam.name} subtitle={`${compTeamTypeLabel(compTeam.comp_team_type)} · ${cast?.total ?? 0} dancers`} />
+      <DestinationHeader
+        name={compTeam.name}
+        subtitle={[compTeamTypeLabel(compTeam.comp_team_type), compTeam.level, `${cast?.total ?? 0} dancers`].filter(Boolean).join(" · ")}
+      />
       <DestinationSubNav base={base} />
 
       <div style={{ padding: "20px 20px 40px", maxWidth: 620, display: "flex", flexDirection: "column", gap: 24 }}>

@@ -51,6 +51,7 @@ export function NewCompTeamWizard() {
   const [step, setStep] = useState<Step>(1);
   const [compTeamType, setCompTeamType] = useState<CompTeamType>("small_group");
   const [name, setName] = useState("");
+  const [level, setLevel] = useState("");
   const [choreographerId, setChoreographerId] = useState("");
   const [instructors, setInstructors] = useState<InstructorOption[]>([]);
   const [candidates, setCandidates] = useState<DancerCandidate[]>([]);
@@ -143,7 +144,7 @@ export function NewCompTeamWizard() {
 
     const { data: newTeam, error: insertError } = await supabase
       .from("comp_team")
-      .insert({ studio_id: person.studio_id, season_id: seasonRow.id, name, comp_team_type: compTeamType })
+      .insert({ studio_id: person.studio_id, season_id: seasonRow.id, name, comp_team_type: compTeamType, level: level || null })
       .select("id")
       .single();
     if (insertError || !newTeam) {
@@ -238,6 +239,11 @@ export function NewCompTeamWizard() {
             </p>
           </div>
 
+          <div style={{ maxWidth: 200 }}>
+            <FieldLabel>Level (optional)</FieldLabel>
+            <input value={level} onChange={(e) => setLevel(e.target.value)} placeholder="Level 2" style={{ width: "100%" }} />
+          </div>
+
           <div>
             <FieldLabel>Choreographer (optional)</FieldLabel>
             <select value={choreographerId} onChange={(e) => setChoreographerId(e.target.value)} style={{ width: "100%" }}>
@@ -313,6 +319,7 @@ export function NewCompTeamWizard() {
               <h3 style={{ fontSize: 17 }}>{name || "(untitled)"}</h3>
               <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 9 }}>
                 <KV label="Type">{TYPE_OPTIONS.find((t) => t.value === compTeamType)?.label}</KV>
+                {level.trim() && <KV label="Level">{level.trim()}</KV>}
                 <KV label="Choreographer">{choreographer?.full_name ?? "Not yet assigned"}</KV>
                 <KV label="Roster">{selected.length > 0 ? selected.map((s) => s.full_name).join(", ") : "No dancers yet"}</KV>
                 <KV label="Entered in a competition?">Not yet</KV>

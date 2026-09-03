@@ -84,6 +84,7 @@ export function TeamsIndex() {
                   </div>
                   <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
                     {[
+                      c.level,
                       `Choreographed by ${c.choreographerNames.length > 0 ? c.choreographerNames.join(", ") : "not yet assigned"}`,
                       c.sourceTeamNames.length > 0 ? `roster from ${c.sourceTeamNames.join(" + ")}` : "",
                       `${c.dancerCount} ${c.dancerCount === 1 ? "dancer" : "dancers"}`,

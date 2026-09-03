@@ -55,13 +55,6 @@ what a real preferences table would need to store per-person.
 
 ## Low priority / cosmetic
 
-### 24. Comp Team Home has no "Level" in its subtitle
-**Found in:** Task 15.
-`CompHome.dc.html`'s header shows "Group comp team · Level 2 · 9
-dancers," but `comp_team` has no `level` column at all (only `team`
-does) — the artboard's "Level 2" has nothing real behind it. Built the
-honest subset instead: `{comp_team_type} · {cast count} dancers`.
-
 ### 25. TeamHome's roster preview has no "Needs a spot" state
 **Found in:** Task 15.
 `TeamHome.dc.html` shows one roster row with a "Needs a spot" pill —
@@ -124,6 +117,27 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 24. Comp Team Home now has "Level" in its subtitle
+**Found in:** Task 15. **Fixed in:** the deficiencies-backlog pass
+revisiting Group 6.
+`comp_team` had no `level` column at all (only `team` did). Added one
+with the exact same shape as `team.level` — nullable free text, no CHECK
+constraint (confirmed via `pg_constraint` before writing the migration,
+so the same "Level 2" free-text convention applies to both, no schema
+divergence). Wired into `NewCompTeamWizard`'s Details step (optional
+input, shown in the Review step only when set) and into every place a
+comp_team's summary line already renders: `CompTeamHome`'s subtitle
+(`{type} · {level} · {cast count} dancers`, level omitted when unset) and
+`TeamsIndex`'s Comp Teams list row, matching `team`'s own row in the same
+list. No edit path added for an *existing* comp_team's level (or any of
+its other creation-time fields) — `comp_team` has no edit screen at all
+yet, same as `team`, so this stays consistent with what already exists
+rather than inventing a new capability beyond the deficiency's scope.
+Verified live: created a real Comp Team with "Level 3" through the
+wizard, confirmed it appeared correctly in the Review step, in
+`TeamsIndex`'s list, and in the new Comp Team's own Home subtitle
+("Small group · Level 3 · 0 dancers"). Test row removed afterward.
 
 ### 11. Offline detection on Schedule screens, verified live
 **Found in:** Task 11. **Verified in:** the deficiencies-backlog pass

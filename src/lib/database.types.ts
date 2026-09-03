@@ -256,6 +256,7 @@ export type Database = {
           dance_style_id: string | null
           id: string
           is_active: boolean
+          level: string | null
           name: string
           season_id: string
           studio_id: string
@@ -267,6 +268,7 @@ export type Database = {
           dance_style_id?: string | null
           id?: string
           is_active?: boolean
+          level?: string | null
           name: string
           season_id: string
           studio_id: string
@@ -278,6 +280,7 @@ export type Database = {
           dance_style_id?: string | null
           id?: string
           is_active?: boolean
+          level?: string | null
           name?: string
           season_id?: string
           studio_id?: string
