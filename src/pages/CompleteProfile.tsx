@@ -5,6 +5,7 @@ import { Avatar } from "../components/Avatar";
 import { Chip } from "../components/Chip";
 import { PrimaryButton } from "../components/PrimaryButton";
 import { SecondaryButton } from "../components/SecondaryButton";
+import { studioMediaPath, uploadToStorage, useSignedUrl } from "../lib/storage";
 import type { Database } from "../lib/database.types";
 
 type InstructorTitle = Database["public"]["Enums"]["instructor_title"];
@@ -23,6 +24,7 @@ interface FullPerson {
   email: string | null;
   title: InstructorTitle | null;
   bio: string | null;
+  photo_path: string | null;
 }
 
 interface DancerRow {
@@ -67,7 +69,7 @@ export function CompleteProfile() {
     Promise.all([
       supabase
         .from("person")
-        .select("id, full_name, phone, email, title, bio")
+        .select("id, full_name, phone, email, title, bio, photo_path")
         .eq("id", person.id)
         .single(),
       supabase
@@ -103,7 +105,7 @@ export function CompleteProfile() {
       onFinish={finish}
     />
   ) : (
-    <AdultBranch person={fullPerson} roles={person.roles} styles={styles} onFinish={finish} />
+    <AdultBranch person={fullPerson} roles={person.roles} styles={styles} studioId={person.studio_id} onFinish={finish} />
   );
 }
 
@@ -111,11 +113,13 @@ function AdultBranch({
   person,
   roles,
   styles,
+  studioId,
   onFinish,
 }: {
   person: FullPerson;
   roles: Role[];
   styles: DanceStyleOption[];
+  studioId: string;
   onFinish: () => Promise<void>;
 }) {
   const isInstructor = roles.includes("instructor");
@@ -128,6 +132,30 @@ function AdultBranch({
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoPath, setPhotoPath] = useState(person.photo_path);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoUrl = useSignedUrl(photoPath);
+
+  const onPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    setError(null);
+    const path = studioMediaPath(studioId, "people", person.id, file);
+    const { error: uploadErr } = await uploadToStorage(path, file);
+    if (uploadErr) {
+      setError("Something went wrong uploading that photo — try again.");
+      setUploadingPhoto(false);
+      return;
+    }
+    const { error: updateErr } = await supabase.from("person").update({ photo_path: path }).eq("id", person.id);
+    setUploadingPhoto(false);
+    if (updateErr) {
+      setError("Photo uploaded, but saving it to your profile failed — try again.");
+      return;
+    }
+    setPhotoPath(path);
+  };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -172,10 +200,11 @@ function AdultBranch({
         </p>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 24 }}>
-          <Avatar name={fullName || person.full_name} size={52} />
-          <span style={{ fontSize: 12.5, color: "var(--ink-3)" }}>
-            Photo uploads arrive with the Media library.
-          </span>
+          <Avatar name={fullName || person.full_name} photoUrl={photoUrl ?? undefined} size={52} />
+          <label style={{ fontSize: 12.5, color: "var(--signal-deep)", fontWeight: 600, cursor: uploadingPhoto ? "default" : "pointer" }}>
+            {uploadingPhoto ? "Uploading…" : photoPath ? "Change photo" : "Add a photo"}
+            <input type="file" accept="image/*" onChange={onPhotoSelected} disabled={uploadingPhoto} style={{ display: "none" }} />
+          </label>
         </div>
 
         <Field label="Full name">

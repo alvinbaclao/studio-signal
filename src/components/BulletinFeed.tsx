@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
+import { useSignedUrl } from "../lib/storage";
 import { Avatar } from "../components/Avatar";
 
 interface MediaRef {
   id: string;
   caption: string | null;
   kind: string;
+  storage_path: string;
 }
 
 interface PostRow {
@@ -79,7 +81,7 @@ export function BulletinFeed({
       const authorIds = [...new Set(postRows.map((p) => p.author_id))];
       const [{ data: authorRows }, { data: mediaRows }, { data: reactionRows }] = await Promise.all([
         supabase.from("person").select("id, full_name").in("id", authorIds),
-        supabase.from("post_media").select("post_id, media_item:media_item_id(id, caption, kind)").in("post_id", postIds),
+        supabase.from("post_media").select("post_id, media_item:media_item_id(id, caption, kind, storage_path)").in("post_id", postIds),
         supabase.from("reaction").select("post_id, person_id").in("post_id", postIds),
       ]);
       const authorName = new Map((authorRows ?? []).map((a) => [a.id, a.full_name]));
@@ -189,9 +191,7 @@ export function BulletinFeed({
                   </div>
                   <div style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 11, whiteSpace: "pre-wrap" }}>{post.body}</div>
                   {post.media.map((m) => (
-                    <div key={m.id} style={{ width: "100%", height: 150, borderRadius: 12, background: "var(--sand)", marginTop: 11, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, color: "var(--ink-3)" }}>
-                      {m.caption ?? m.kind}
-                    </div>
+                    <BulletinMediaTile key={m.id} media={m} />
                   ))}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, paddingTop: 12, borderTop: "1px solid var(--hairline)" }}>
                     <button
@@ -258,6 +258,37 @@ export function BulletinFeed({
           </Link>
         </div>
       )}
+    </div>
+  );
+}
+
+function BulletinMediaTile({ media }: { media: MediaRef }) {
+  const url = useSignedUrl(media.storage_path);
+  const tileStyle: React.CSSProperties = { width: "100%", borderRadius: 12, marginTop: 11, overflow: "hidden", background: "var(--sand)" };
+  if (media.kind === "photo" && url) {
+    return (
+      <div style={tileStyle}>
+        <img src={url} alt={media.caption ?? "Photo"} style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
+      </div>
+    );
+  }
+  if (media.kind === "video" && url) {
+    return (
+      <div style={tileStyle}>
+        <video src={url} controls style={{ width: "100%", maxHeight: 260, display: "block" }} />
+      </div>
+    );
+  }
+  if (media.kind === "audio" && url) {
+    return (
+      <div style={{ ...tileStyle, padding: "14px 16px" }}>
+        <audio src={url} controls style={{ width: "100%" }} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...tileStyle, height: 60, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, color: "var(--ink-3)" }}>
+      {media.caption ?? media.kind}
     </div>
   );
 }

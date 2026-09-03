@@ -3,7 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
+import { mediaKindFromMime, studioMediaPath, uploadToStorage } from "../lib/storage";
 import { Placeholder } from "./Placeholder";
+
+const MAX_ATTACHMENTS = 4;
 
 interface DestInfo {
   name: string;
@@ -13,9 +16,11 @@ interface DestInfo {
 // Ports design-reference/BulletinComposer.dc.html — one shared composer for
 // all three Bulletin scopes, pre-scoped to wherever its "+" was tapped (no
 // scope picker, unlike the studio-wide broadcast composer). See
-// BUILD_PLAN.md Task 17. Media attachment is dropped entirely rather than
-// shown as a dead control — there's no Storage bucket yet, same root gap
-// noted since Task 4; see docs/DEFICIENCIES.md.
+// BUILD_PLAN.md Task 17. Attach is real now that a Storage bucket exists
+// (docs/DEFICIENCIES.md #2/#28, resolved): each file becomes a real
+// media_item, linked to the post via post_media once the post itself is
+// created (post_media.post_id is NOT NULL, so media_item rows are made
+// first and linked after, not the other way around).
 export function BulletinComposer({ kind }: { kind: "team" | "comp_team" | "studio" }) {
   const { id: destinationId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -28,6 +33,7 @@ export function BulletinComposer({ kind }: { kind: "team" | "comp_team" | "studi
   const [canPost, setCanPost] = useState<boolean | null>(null);
   const [body, setBody] = useState("");
   const [important, setImportant] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,22 +69,72 @@ export function BulletinComposer({ kind }: { kind: "team" | "comp_team" | "studi
     if (!person || !body.trim()) return;
     setSubmitting(true);
     setError(null);
+
+    const mediaItemIds: string[] = [];
+    for (const file of attachments) {
+      const path = studioMediaPath(person.studio_id, "media", null, file);
+      const { error: uploadErr } = await uploadToStorage(path, file);
+      if (uploadErr) {
+        setError(`Something went wrong uploading "${file.name}" — try again.`);
+        setSubmitting(false);
+        return;
+      }
+      const { data: mediaRow, error: mediaErr } = await supabase
+        .from("media_item")
+        .insert({
+          studio_id: person.studio_id,
+          team_id: kind === "team" ? destinationId : null,
+          comp_team_id: kind === "comp_team" ? destinationId : null,
+          kind: mediaKindFromMime(file.type),
+          processing_status: "ready",
+          storage_path: path,
+          file_name: file.name,
+          byte_size: file.size,
+          uploaded_by: person.id,
+        })
+        .select("id")
+        .single();
+      if (mediaErr || !mediaRow) {
+        setError(`"${file.name}" uploaded, but couldn't be attached — try again.`);
+        setSubmitting(false);
+        return;
+      }
+      mediaItemIds.push(mediaRow.id);
+    }
+
     const { data: season } = await supabase.from("season").select("id").eq("studio_id", person.studio_id).eq("is_current", true).single();
-    const { error: insertErr } = await supabase.from("post").insert({
-      studio_id: person.studio_id,
-      author_id: person.id,
-      season_id: season!.id,
-      scope: kind,
-      team_id: kind === "team" ? destinationId : null,
-      comp_team_id: kind === "comp_team" ? destinationId : null,
-      important,
-      body: body.trim(),
-    });
-    setSubmitting(false);
-    if (insertErr) {
+    const { data: postRow, error: insertErr } = await supabase
+      .from("post")
+      .insert({
+        studio_id: person.studio_id,
+        author_id: person.id,
+        season_id: season!.id,
+        scope: kind,
+        team_id: kind === "team" ? destinationId : null,
+        comp_team_id: kind === "comp_team" ? destinationId : null,
+        important,
+        body: body.trim(),
+      })
+      .select("id")
+      .single();
+    if (insertErr || !postRow) {
+      setSubmitting(false);
       setError("Something went wrong posting this — try again.");
       return;
     }
+
+    if (mediaItemIds.length > 0) {
+      const { error: linkErr } = await supabase
+        .from("post_media")
+        .insert(mediaItemIds.map((mediaItemId, i) => ({ post_id: postRow.id, media_item_id: mediaItemId, sort_order: i })));
+      if (linkErr) {
+        setSubmitting(false);
+        setError("Posted, but attaching the media failed — the post is up without it.");
+        return;
+      }
+    }
+
+    setSubmitting(false);
     navigate(-1);
   }
 
@@ -114,9 +170,30 @@ export function BulletinComposer({ kind }: { kind: "team" | "comp_team" | "studi
           />
         </div>
 
-        <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 12, background: "var(--sand)", color: "var(--ink-3)", fontSize: 11 }}>
-          Attach a photo or video — arrives with the Media library, not yet set up for this studio.
-        </div>
+        <label
+          style={{
+            marginTop: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 14px",
+            borderRadius: 12,
+            background: "var(--sand)",
+            color: "var(--ink-2)",
+            fontSize: 11.5,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            onChange={(e) => setAttachments(Array.from(e.target.files ?? []).slice(0, MAX_ATTACHMENTS))}
+            style={{ display: "none" }}
+          />
+          {attachments.length > 0 ? `${attachments.length} file${attachments.length === 1 ? "" : "s"} attached — ${attachments.map((f) => f.name).join(", ")}` : `Attach a photo or video — arrives with the Media library.`}
+        </label>
 
         <div style={{ marginTop: 14 }}>
           <div className="card" style={{ border: "1px solid var(--hairline)", borderRadius: 16 }}>

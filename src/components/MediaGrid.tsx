@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useStudio } from "../lib/useStudio";
 import { weekRangeInZone } from "../lib/format";
+import { useSignedUrl } from "../lib/storage";
 
 export interface MediaItemFull {
   id: string;
@@ -11,6 +12,7 @@ export interface MediaItemFull {
   processing_status: string;
   created_at: string;
   uploaded_by: string | null;
+  storage_path: string;
 }
 
 type Scope = "studio" | "team" | "comp_team";
@@ -23,11 +25,11 @@ type Scope = "studio" | "team" | "comp_team";
 // processing," never a broken thumbnail. Thumbnail-first, tap-to-play
 // (opens a detail sheet), never autoplay — see BUILD_PLAN.md Task 18.
 //
-// There's no Supabase Storage bucket for this studio yet (see
-// docs/DEFICIENCIES.md #2 and friends), so every tile renders an honest
-// placeholder swatch instead of a real photo/video frame — the grouping,
-// RLS scoping, and processing-status handling are all real and
-// live-verified; only the pixels are missing.
+// Photo tiles render a real signed-URL thumbnail now that a Storage
+// bucket exists (docs/DEFICIENCIES.md #2, resolved). Video/audio keep the
+// icon tile in the grid (no cheap client-side poster-frame generation
+// available) but play for real — a real <video>/<audio> element — in the
+// detail sheet.
 export function MediaGrid({ scope, destinationId }: { scope: Scope; destinationId: string | null }) {
   const studio = useStudio();
   const [items, setItems] = useState<MediaItemFull[] | null>(null);
@@ -38,7 +40,7 @@ export function MediaGrid({ scope, destinationId }: { scope: Scope; destinationI
     if (!studio) return;
     let cancelled = false;
     async function load() {
-      let q = supabase.from("media_item").select("id, caption, kind, processing_status, created_at, uploaded_by");
+      let q = supabase.from("media_item").select("id, caption, kind, processing_status, created_at, uploaded_by, storage_path");
       if (scope === "team") q = q.eq("team_id", destinationId!);
       else if (scope === "comp_team") q = q.eq("comp_team_id", destinationId!);
       else q = q.is("team_id", null).is("comp_team_id", null);
@@ -105,78 +107,107 @@ function MediaSection({
       <Eyebrow>{title}</Eyebrow>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 11 }}>
         {items.map((item) => (
-          <div key={item.id}>
-            <div
-              role="button"
-              onClick={() => onOpen(item)}
-              style={{
-                position: "relative",
-                borderRadius: 14,
-                overflow: "hidden",
-                boxShadow: "0 4px 14px -6px rgba(44,32,12,.22)",
-                height: 150,
-                background: "var(--sand)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-            >
-              <TileIcon kind={item.kind} />
-              {item.processing_status !== "ready" && (
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(28,23,20,.55)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                  }}
-                >
-                  Still processing
-                </div>
-              )}
-              {item.processing_status === "ready" && item.kind === "video" && (
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <PlayIcon />
-                  </div>
-                </div>
-              )}
-              {item.processing_status === "ready" && item.kind === "video" && (
-                <span style={{ position: "absolute", top: 8, left: 8, background: "var(--band)", color: "var(--signal)", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: "0.03em" }}>
-                  VIDEO
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 10.5, color: "var(--ink-3)", marginTop: 6, lineHeight: 1.4 }}>
-              {item.caption ?? kindLabel(item.kind)}
-              {item.uploaded_by && uploaderNames.get(item.uploaded_by) ? ` · ${uploaderNames.get(item.uploaded_by)}` : ""}
-            </div>
-          </div>
+          <MediaTile key={item.id} item={item} uploaderName={item.uploaded_by ? uploaderNames.get(item.uploaded_by) ?? null : null} onOpen={onOpen} />
         ))}
       </div>
     </div>
   );
 }
 
+function MediaTile({ item, uploaderName, onOpen }: { item: MediaItemFull; uploaderName: string | null; onOpen: (item: MediaItemFull) => void }) {
+  const photoUrl = useSignedUrl(item.kind === "photo" ? item.storage_path : null);
+  return (
+    <div>
+      <div
+        role="button"
+        onClick={() => onOpen(item)}
+        style={{
+          position: "relative",
+          borderRadius: 14,
+          overflow: "hidden",
+          boxShadow: "0 4px 14px -6px rgba(44,32,12,.22)",
+          height: 150,
+          background: "var(--sand)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+        }}
+      >
+        {photoUrl ? (
+          <img src={photoUrl} alt={item.caption ?? kindLabel(item.kind)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <TileIcon kind={item.kind} />
+        )}
+        {item.processing_status !== "ready" && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(28,23,20,.55)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 11.5,
+              fontWeight: 600,
+            }}
+          >
+            Still processing
+          </div>
+        )}
+        {item.processing_status === "ready" && item.kind === "video" && (
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <PlayIcon />
+            </div>
+          </div>
+        )}
+        {item.processing_status === "ready" && item.kind === "video" && (
+          <span style={{ position: "absolute", top: 8, left: 8, background: "var(--band)", color: "var(--signal)", fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 999, letterSpacing: "0.03em" }}>
+            VIDEO
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 10.5, color: "var(--ink-3)", marginTop: 6, lineHeight: 1.4 }}>
+        {item.caption ?? kindLabel(item.kind)}
+        {uploaderName ? ` · ${uploaderName}` : ""}
+      </div>
+    </div>
+  );
+}
+
 function MediaDetailSheet({ item, uploaderName, onClose }: { item: MediaItemFull; uploaderName: string | null; onClose: () => void }) {
+  const fileUrl = useSignedUrl(item.storage_path);
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(28,23,20,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 100 }}
       onClick={onClose}
     >
       <div style={{ width: "100%", maxWidth: 420, background: "var(--paper)", borderRadius: 20, overflow: "hidden", boxShadow: "0 24px 60px -18px rgba(28,23,20,.35)" }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ height: 220, background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-          <TileIcon kind={item.kind} large />
-          {item.processing_status !== "ready" && (
-            <div style={{ position: "absolute", inset: 0, background: "rgba(28,23,20,.55)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12.5, fontWeight: 600 }}>
-              Still processing
+        <div style={{ minHeight: 220, background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+          {item.processing_status !== "ready" || !fileUrl ? (
+            <>
+              <TileIcon kind={item.kind} large />
+              {item.processing_status !== "ready" && (
+                <div style={{ position: "absolute", inset: 0, background: "rgba(28,23,20,.55)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12.5, fontWeight: 600 }}>
+                  Still processing
+                </div>
+              )}
+            </>
+          ) : item.kind === "photo" ? (
+            <img src={fileUrl} alt={item.caption ?? kindLabel(item.kind)} style={{ width: "100%", maxHeight: 420, objectFit: "contain" }} />
+          ) : item.kind === "video" ? (
+            <video src={fileUrl} controls style={{ width: "100%", maxHeight: 420 }} />
+          ) : item.kind === "audio" ? (
+            <div style={{ width: "100%", padding: "40px 20px" }}>
+              <audio src={fileUrl} controls style={{ width: "100%" }} />
             </div>
+          ) : (
+            <a href={fileUrl} target="_blank" rel="noreferrer" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: "var(--ink-2)", textDecoration: "none" }}>
+              <TileIcon kind={item.kind} large />
+              <span style={{ fontSize: 12.5, fontWeight: 600 }}>Open document</span>
+            </a>
           )}
         </div>
         <div style={{ padding: "16px 18px 18px" }}>

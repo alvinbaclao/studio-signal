@@ -8,25 +8,6 @@ under "Resolved" with the task that fixed them, don't just delete them.
 
 ## Open
 
-### 2. No Supabase Storage bucket exists yet
-**Found in:** Task 4. **Confirmed still true in:** Task 18.
-`supabase.storage.listBuckets()` returns empty on the real project — this
-was re-checked live at the start of Task 18, its own dedicated task, and
-still returns `[]`. This blocks profile photo upload (Task 4's
-CompleteProfile shows a placeholder note instead of a working upload
-control) and now confirms Task 18's own prediction: `MediaUploadComposer`
-is a real, destination-scoped screen (same shared-composer pattern as
-`BulletinComposer`) that explains this honestly rather than presenting a
-picker/compression/upload pipeline with nowhere to actually upload to.
-Everything else about Task 18 — the grouped grid, `processing_status`
-handling, tap-to-open detail view, per-destination RLS scoping, and the
-Director-only-for-Media-specifically gating rule — is real and verified
-live against manually-seeded `media_item` rows. Needs a bucket created
-and RLS storage policies written — not something this codebase can do
-itself (creating storage policies is exactly the kind of RLS change
-CLAUDE.md's four rules forbid); likely needs to happen in the Supabase
-dashboard or via a migration-adjacent step outside this repo.
-
 ### 4. Duplicate-person detection not implemented in the confirm queue
 **Found in:** Task 5.
 `DirectorConfirmQueue.dc.html` shows a "Might match Noah W. already on
@@ -115,20 +96,18 @@ their own declined request via existing RLS), just not the formal
 accept/counter loop the mockup depicts — that would need real schema
 support to build honestly.
 
-### 22. Unified Home's band and Highlights are narrower than the artboard
+### 22. Unified Home's "Needs your attention" band and "Next up" are narrower than the artboard
 **Found in:** Task 14. **Narrowed in:** the deficiencies-backlog pass
-following Task 27 — Inbox is fixed (see #43, Resolved); this entry now
-covers what's left.
+following Task 27 (Group 1: Inbox fixed, see #43, Resolved; Group 3:
+Highlights now shows real thumbnails, see the Storage-bucket Resolved
+entry). This entry now covers only what's left.
 `HomeUnified.dc.html`'s "Needs your attention" band mixes in "urgent
 messages" and general "schedule changes" alongside booking requests —
 only the booking-request half is real (there's no notification table for
-the other two — see #17/#26). "Recent highlights" queries `media_item`
-live and renders an honest empty state, but can't show real content until
-#2 (Storage bucket) is resolved. "Next up" also doesn't surface
-competition/call-time cards the way the artboard's Regional Classic
-example does — there's no CompetitionOverview screen yet to link to from
-here (the screen itself now exists, from Task 24 — this is specifically
-about `HomeUnified`'s own "Next up" card not linking to it).
+the other two — see #17/#26). "Next up" also doesn't surface competition/
+call-time cards the way the artboard's Regional Classic example does —
+`CompetitionOverview` exists now (Task 24), `HomeUnified`'s own "Next up"
+card just doesn't link to it yet.
 
 ### 26. Notification preferences are collected client-side only
 **Found in:** Task 16.
@@ -150,15 +129,6 @@ is no table anywhere in the schema that tracks who has viewed a `post`
 `post`). Omitted entirely rather than faked. Revisit only if a real
 post-read-tracking table is ever added — it would need its own migration,
 which this codebase cannot write (see CLAUDE.md's four rules).
-
-### 28. Bulletin media attachment is dropped — same Storage gap as before
-**Found in:** Task 17.
-`BulletinComposer`'s "Attach a photo or video" is a calm explanatory note,
-not a working control, same treatment as Deficiency #2/#15/#23's root
-cause (no Storage bucket exists for this studio). `BulletinFeed` still
-renders inline media placeholders for any `post_media` a post has — real,
-live-queried, just currently always empty since nothing can attach media
-yet.
 
 ### 31. No drag-to-reorder on Essentials lists
 **Found in:** Task 19.
@@ -309,6 +279,79 @@ fix). If this should also be tightened, the same pattern applies: swap
 task) in each of these six policies.
 
 ## Resolved
+
+### 2 & 28. No Supabase Storage bucket existed — profile photos, Media library, and Bulletin attachments were all placeholders
+**Found in:** Tasks 4, 17, 18. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 3).
+`supabase.storage.listBuckets()` returned empty on the real project
+throughout the whole build — confirmed still true as late as Task 18.
+This blocked `CompleteProfile`'s photo upload, `MediaUploadComposer`'s
+entire purpose, and `BulletinComposer`'s attach control; `MediaGrid` and
+`BulletinFeed` rendered honest icon/text placeholders instead of real
+thumbnails for exactly the same reason. Everything else about those
+screens (grouped grid, `processing_status` handling, per-destination RLS
+scoping, Director/instructor-choreographer gating) was already real and
+verified — only the pixels were missing.
+
+Turned out the bucket genuinely could be created via a migration, not
+manual dashboard work as originally assumed: `storage.buckets` and
+`storage.objects` RLS are plain tables/policies, writable through the
+same `supabase db query --linked` access used all session. Created one
+private bucket, `studio-media` (`supabase/migrations/20260903132309_create_studio_media_bucket.sql`)
+— not public, since this holds photos of dancers, some of them minors,
+and a guessable public URL isn't acceptable — with a path convention of
+`{studio_id}/{category}/...` (`people/{person_id}/...` for profile
+photos, `studio-logo/...`, `media/...` for the Media library) and four
+RLS policies on `storage.objects` gated through
+`app.my_confirmed_studio_ids()` (added fixing #42), the same
+pending-can't-see-real-content boundary as everywhere else. Reads go
+through `createSignedUrl()`, not a plain public URL — new shared helper
+`src/lib/storage.ts` (`uploadToStorage`, `useSignedUrl`, a light
+client-side signed-URL cache, `mediaKindFromMime`).
+
+Frontend wired up for real: `CompleteProfile`'s photo upload,
+`MediaUploadComposer` (real multi-file upload, up to 10 files, no
+client-side video compression — that's a separate undertaking nothing in
+this build actually needed), `BulletinComposer`'s attach control (uploads
+→ `media_item` rows → the post → `post_media` links, in that order,
+since `post_media.post_id` is `NOT NULL`), and real thumbnail rendering
+in `MediaGrid`, `BulletinFeed`, and `HomeUnified`'s "Recent highlights"
+(closing that part of #22). Photos get real `<img>` thumbnails
+everywhere; video/audio keep an icon tile in grids (no cheap
+poster-frame generation available client-side) but play for real in
+detail views.
+
+One real gap found live-verifying this: a person filling out
+`CompleteProfile` is still `status='pending'` at that point — the
+Director hasn't confirmed them yet — but the original policies required
+confirmed status for every write, so a brand-new signup couldn't upload
+their own profile photo during onboarding. Fixed with a follow-up
+migration (`20260903135121_fix_own_photo_upload_while_pending.sql`):
+the `people/{person_id}/...` path category is now writable/readable by
+its own person, any status (via `app.my_person_ids()`, not the confirmed-
+only helper) — every other category (`studio-logo`, `media`) keeps the
+confirmed-only requirement. Verified live via raw `supabase-js` calls as
+a genuinely-pending test signup: own-photo upload/read allowed, write to
+the shared `media/` category still correctly blocked.
+
+Verified live end-to-end for every surface (Playwright + raw API):
+uploaded a real image as a confirmed instructor to Jazz II's Media
+library and via Bulletin attach, confirmed real `<img>` tags render (not
+broken-image icons — visually confirmed via screenshot) in `MediaGrid`,
+`BulletinFeed`, and `HomeUnified`; confirmed the object-owner delete
+policy works via the real Storage API. All test media/posts/objects and
+one throwaway test account removed afterward, verified via a direct
+bucket listing (0 items in every category) and row counts (0).
+
+`person.photo_path` is now real and populated by `CompleteProfile`'s
+upload, but not yet plumbed into any other `Avatar` call site (Roster,
+`PersonDetail`, `MessagingThread`, 20 others) — deliberately out of
+scope for this pass (`Avatar` already supports a `photoUrl` prop, unused
+everywhere except its own upload preview). Revisit as a separate,
+smaller follow-up if photos should actually show up around the app, not
+just on the uploader's own onboarding screen.
+
+
 
 ### 35. Moving a conflicting event lands back on Call Times' Entries step, not where you left off
 **Found in:** Task 23. **Fixed in:** the deficiencies-backlog pass

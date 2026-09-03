@@ -16,6 +16,10 @@ dist-ssr
 # machine-specific, not part of the app.
 supabase/.temp/
 
+# Scratch SQL/scripts used for live verification during a session — never
+# part of the app itself.
+.scratch/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

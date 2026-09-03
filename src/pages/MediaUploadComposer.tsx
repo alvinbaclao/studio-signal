@@ -3,18 +3,19 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
+import { mediaKindFromMime, studioMediaPath, uploadToStorage } from "../lib/storage";
 import { Placeholder } from "./Placeholder";
+
+const MAX_FILES = 10;
 
 // Ports design-reference/MediaUpload.dc.html — one shared composer,
 // pre-scoped to wherever its "+" was tapped, same pattern as
-// BulletinComposer. Unlike Bulletin's composer (where only the attach
-// sub-control was blocked), this ENTIRE screen's purpose is uploading a
-// file, and there is no Supabase Storage bucket for this studio — so
-// rather than build a picker/compression/upload pipeline that can never
-// actually complete (client-side compression + a duration/size cap is
-// real, buildable logic, but it has nowhere to upload TO), this stays an
-// honest, destination-scoped explanation. See BUILD_PLAN.md Task 18 and
-// docs/DEFICIENCIES.md #2 and friends.
+// BulletinComposer. See BUILD_PLAN.md Task 18. Now that a real Storage
+// bucket exists (docs/DEFICIENCIES.md #2, resolved), this uploads for
+// real — up to 10 files, straight through, no client-side video
+// compression (that's a real, separate undertaking the artboard implied
+// but nothing in this build ever needed for it to be honestly useful;
+// revisit only if upload sizes turn out to be a real problem).
 export function MediaUploadComposer({ kind }: { kind: "team" | "comp_team" | "studio" }) {
   const { id: destinationId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -25,6 +26,9 @@ export function MediaUploadComposer({ kind }: { kind: "team" | "comp_team" | "st
 
   const [destName, setDestName] = useState<string | null>(null);
   const [canUpload, setCanUpload] = useState<boolean | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!person || !studio) return;
@@ -51,6 +55,45 @@ export function MediaUploadComposer({ kind }: { kind: "team" | "comp_team" | "st
     load();
   }, [kind, destinationId, person, studio, isDirector, isInstructor]);
 
+  const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []).slice(0, MAX_FILES);
+    setFiles(picked);
+    setError(null);
+  };
+
+  const upload = async () => {
+    if (!person || files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    for (const file of files) {
+      const path = studioMediaPath(person.studio_id, "media", null, file);
+      const { error: uploadErr } = await uploadToStorage(path, file);
+      if (uploadErr) {
+        setError(`Something went wrong uploading "${file.name}" — try again.`);
+        setUploading(false);
+        return;
+      }
+      const { error: insertErr } = await supabase.from("media_item").insert({
+        studio_id: person.studio_id,
+        team_id: kind === "team" ? destinationId : null,
+        comp_team_id: kind === "comp_team" ? destinationId : null,
+        kind: mediaKindFromMime(file.type),
+        processing_status: "ready",
+        storage_path: path,
+        file_name: file.name,
+        byte_size: file.size,
+        uploaded_by: person.id,
+      });
+      if (insertErr) {
+        setError(`"${file.name}" uploaded, but saving it to ${destName} · Media failed — try again.`);
+        setUploading(false);
+        return;
+      }
+    }
+    setUploading(false);
+    navigate(-1);
+  };
+
   if (canUpload === false) return <Placeholder title="Upload Media" />;
   if (!person || !destName || canUpload === null) return null;
 
@@ -71,16 +114,54 @@ export function MediaUploadComposer({ kind }: { kind: "team" | "comp_team" | "st
           <div style={{ fontSize: 12.5, fontWeight: 700 }}>Adding to {destName} · Media</div>
         </div>
 
-        <div style={{ marginTop: 22, border: "1.5px dashed var(--hairline)", borderRadius: 16, padding: "34px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, textAlign: "center" }}>
+        <label
+          style={{
+            marginTop: 22,
+            border: "1.5px dashed var(--hairline)",
+            borderRadius: 16,
+            padding: "34px 20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+            textAlign: "center",
+            cursor: "pointer",
+          }}
+        >
+          <input type="file" accept="image/*,video/*,audio/*" multiple onChange={onFilesSelected} style={{ display: "none" }} />
           <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--sand)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <UploadIcon />
           </div>
-          <div style={{ fontSize: 13.5, fontWeight: 700 }}>Photo and video upload isn't set up yet</div>
-          <div style={{ fontSize: 11.5, color: "var(--ink-3)", lineHeight: 1.5, maxWidth: 280 }}>
-            This studio doesn't have a Storage bucket configured, so there's nowhere for a photo or video to go yet.
-            Once one exists, this screen picks up to 10 files from your camera roll, compresses video client-side, and
-            uploads straight to {destName} · Media.
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>
+            {files.length > 0 ? `${files.length} file${files.length === 1 ? "" : "s"} selected` : "Choose photos, video, or audio"}
           </div>
+          <div style={{ fontSize: 11.5, color: "var(--ink-3)", lineHeight: 1.5, maxWidth: 280 }}>
+            {files.length > 0 ? files.map((f) => f.name).join(", ") : `Up to ${MAX_FILES} files at once.`}
+          </div>
+        </label>
+
+        {error && <div style={{ marginTop: 14, fontSize: 12.5, color: "var(--busy)" }}>{error}</div>}
+
+        <div style={{ marginTop: 22 }}>
+          <button
+            type="button"
+            onClick={upload}
+            disabled={files.length === 0 || uploading}
+            style={{
+              width: "100%",
+              padding: "15px 20px",
+              borderRadius: 12,
+              background: "var(--signal)",
+              color: "var(--signal-ink)",
+              fontSize: 14.5,
+              fontWeight: 700,
+              border: "none",
+              opacity: files.length === 0 || uploading ? 0.6 : 1,
+              cursor: files.length === 0 || uploading ? "default" : "pointer",
+            }}
+          >
+            {uploading ? "Uploading…" : `Upload to ${destName}`}
+          </button>
         </div>
       </div>
     </div>

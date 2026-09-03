@@ -12,6 +12,7 @@ import {
 import { Band } from "../components/Band";
 import { Avatar } from "../components/Avatar";
 import { ScheduleRow } from "../components/ScheduleRow";
+import { useSignedUrl } from "../lib/storage";
 
 type ChipTone = "instructor" | "parent";
 
@@ -53,6 +54,7 @@ interface HighlightItem {
   id: string;
   caption: string | null;
   kind: string;
+  storage_path: string;
 }
 
 interface InboxThread {
@@ -253,15 +255,14 @@ export function HomeUnified() {
     };
   }, [person]);
 
-  // Recent highlights — media_item is real, but there's no Storage bucket
-  // yet (docs/DEFICIENCIES.md #2), so this is an honest empty state for
-  // now, not faked content.
+  // Recent highlights — media_item is real; real thumbnails now that a
+  // Storage bucket exists (docs/DEFICIENCIES.md #2, resolved).
   useEffect(() => {
     if (!person) return;
     let cancelled = false;
     supabase
       .from("media_item")
-      .select("id, caption, kind, created_at")
+      .select("id, caption, kind, created_at, storage_path")
       .order("created_at", { ascending: false })
       .limit(4)
       .then(({ data }) => {
@@ -444,10 +445,7 @@ export function HomeUnified() {
         ) : (
           <div style={{ display: "flex", gap: 10, marginTop: 10, overflowX: "auto", paddingBottom: 2 }}>
             {highlights.map((h) => (
-              <div key={h.id} style={{ flex: "0 0 120px" }}>
-                <div style={{ width: 120, height: 120, borderRadius: 12, background: "var(--sand)" }} />
-                <div style={{ fontSize: 11.5, color: "var(--ink-2)", marginTop: 6 }}>{h.caption ?? h.kind}</div>
-              </div>
+              <HighlightTile key={h.id} item={h} />
             ))}
           </div>
         )}
@@ -563,6 +561,18 @@ function dayLabel(iso: string, timeZone: string): string {
   const tomorrowKey = zonedDateKey(new Date(Date.now() + 86400000).toISOString(), timeZone);
   if (key === tomorrowKey) return "Tomorrow";
   return weekdayShort(iso, timeZone);
+}
+
+function HighlightTile({ item }: { item: HighlightItem }) {
+  const url = useSignedUrl(item.kind === "photo" ? item.storage_path : null);
+  return (
+    <div style={{ flex: "0 0 120px" }}>
+      <div style={{ width: 120, height: 120, borderRadius: 12, background: "var(--sand)", overflow: "hidden" }}>
+        {url && <img src={url} alt={item.caption ?? item.kind} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />}
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--ink-2)", marginTop: 6 }}>{item.caption ?? item.kind}</div>
+    </div>
+  );
 }
 
 function weekdayShort(iso: string, timeZone: string): string {
