@@ -81,17 +81,6 @@ literal "single-tap upsert/delete" BUILD_PLAN.md Task 17 describes: one
 fixed reaction kind (👍), tap to add your own, tap again to remove it.
 Revisit if a real multi-reaction picker is ever specified concretely.
 
-### 11. Offline detection on Schedule screens is unverified
-**Found in:** Task 11.
-`ScheduleView` shows "Can't load this week — you're offline" when its
-`fetchEvents` promise rejects, and "Nothing scheduled this week" when it
-resolves with zero rows — but the offline branch was only exercised by
-reading the code, not by actually cutting network access mid-session and
-confirming the message appears (hard to simulate reliably in this
-environment). The empty-vs-offline distinction the code implements is
-correct in principle; the offline path itself hasn't been proven live the
-way everything else in this task was.
-
 ## Decided against building
 
 Real gaps, but the user explicitly chose not to build them (as opposed to
@@ -135,6 +124,24 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 11. Offline detection on Schedule screens, verified live
+**Found in:** Task 11. **Verified in:** the deficiencies-backlog pass
+revisiting Group 6.
+`ScheduleView` shows "Can't load this {week/month} — you're offline" when
+its `fetchEvents` promise rejects, and "Loading…"/"Nothing scheduled"
+otherwise — only ever exercised by reading the code before now, on the
+assumption that cutting network mid-session wasn't reliably simulatable.
+That assumption was wrong: Playwright's `browserContext.setOffline(true)`
+does this for real, at the browser level, no different from toggling
+airplane mode. Verified live: loaded Schedule online, cut the network,
+then switched Week → Month to force a re-fetch — the `event` query failed
+with a real `net::ERR_INTERNET_DISCONNECTED`, and the UI correctly showed
+"Can't load this month — you're offline." (an intermediate check at only
+2s wait still showed "Loading…", since the browser doesn't reject an
+in-flight request instantly — a longer wait was needed to see the real
+rejection, not a sign of a slow app). No code change needed; this closes
+the verification gap only.
 
 ### 36. CompetitionOverview now has a real "Updates" feed and event-scoped Media
 **Found in:** Task 24. **Fixed in:** the deficiencies-backlog pass
