@@ -125,16 +125,6 @@ page is read-only for everyone — no role-gating needed. Revisit only if
 `post`/`media_item` ever gain a real competition scope (a schema change,
 so out of this codebase's own reach regardless).
 
-### 37. Call-time events use a fixed 30-minute placeholder duration
-**Found in:** Task 24.
-`competition_entry.call_time` is a single instant (when to arrive), and
-the schema has no separate performance-duration field — the real
-`call_time` event this creates (`app._sync_call_time_event`) needs a
-NOT NULL `ends_at`, so it uses `starts_at + 30 minutes` as a documented,
-arbitrary default. Real call times are rarely exactly 30 minutes;
-revisit if a real duration signal is ever added to the schema (e.g. on
-`competition_entry` itself).
-
 ### 39. `DirectorTeamsMobile` drops the "new posts"/"all read" marker
 **Found in:** Task 25.
 `DirectorTeamsMobile.dc.html` shows a "4 new"/"All read" badge per
@@ -249,6 +239,25 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 37. Call-time events now use a real, Director-set duration
+**Found in:** Task 24. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+`competition_entry.call_time` was a single instant with no duration
+field, so `app._sync_call_time_event` hardcoded `starts_at + 30 minutes`
+for every real call-time `event`. Added `competition_entry.duration_minutes`
+(`integer not null default 30`, `check (duration_minutes > 0)` — the
+default matches prior behavior for every existing/new entry until a
+Director sets a real value). `_sync_call_time_event` and
+`set_competition_entry_call_time` (now takes an optional
+`p_duration_minutes`) both updated to use it.
+`CompetitionWizard`'s Call Times step gained a duration input next to the
+time input. Verified live end-to-end: set a call time with a 45-minute
+duration, published the competition, confirmed the real `event` row's
+`ends_at - starts_at` is exactly 45 minutes, not the old fixed 30. All
+test data removed afterward.
+
+
 
 ### 44. `thread_read_state` only ever showed a viewer their own read status — "Seen by X of Y" was never really X
 **Found and fixed in:** the deficiencies-backlog pass following Task 27

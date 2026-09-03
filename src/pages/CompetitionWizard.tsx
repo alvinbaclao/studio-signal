@@ -37,6 +37,7 @@ interface EntryState {
   proposedByName: string | null;
   acceptedAt: string | null;
   callTime: string | null;
+  durationMinutes: number;
 }
 
 interface ConflictInfo {
@@ -120,6 +121,7 @@ export function CompetitionWizard() {
   const [staggering, setStaggering] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTime, setEditTime] = useState("");
+  const [editDuration, setEditDuration] = useState(30);
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
   const [savingTime, setSavingTime] = useState(false);
 
@@ -163,7 +165,7 @@ export function CompetitionWizard() {
         ids.length > 0
           ? supabase.from("comp_team_cast").select("comp_team_id, person_id, role").in("comp_team_id", ids)
           : Promise.resolve({ data: [] as { comp_team_id: string; person_id: string; role: string }[] }),
-        supabase.from("competition_entry").select("id, comp_team_id, proposed_by, accepted_at, call_time").eq("competition_id", competitionId!),
+        supabase.from("competition_entry").select("id, comp_team_id, proposed_by, accepted_at, call_time, duration_minutes").eq("competition_id", competitionId!),
       ]);
       if (cancelled) return;
 
@@ -193,7 +195,7 @@ export function CompetitionWizard() {
         new Map(
           (entryRows ?? []).map((e) => [
             e.comp_team_id,
-            { entryId: e.id, proposedBy: e.proposed_by, proposedByName: e.proposed_by ? nameById.get(e.proposed_by) ?? null : null, acceptedAt: e.accepted_at, callTime: e.call_time },
+            { entryId: e.id, proposedBy: e.proposed_by, proposedByName: e.proposed_by ? nameById.get(e.proposed_by) ?? null : null, acceptedAt: e.accepted_at, callTime: e.call_time, durationMinutes: e.duration_minutes },
           ])
         )
       );
@@ -270,7 +272,7 @@ export function CompetitionWizard() {
         .select("id")
         .single();
       if (!insErr && data) {
-        setEntries((prev) => new Map(prev).set(compTeamId, { entryId: data.id, proposedBy: null, proposedByName: null, acceptedAt: new Date().toISOString(), callTime: null }));
+        setEntries((prev) => new Map(prev).set(compTeamId, { entryId: data.id, proposedBy: null, proposedByName: null, acceptedAt: new Date().toISOString(), callTime: null, durationMinutes: 30 }));
       }
     }
     setTogglingId(null);
@@ -316,7 +318,7 @@ export function CompetitionWizard() {
       if (!insErr && data) {
         setEntries((prev) => {
           const next = new Map(prev);
-          for (const row of data) next.set(row.comp_team_id, { entryId: row.id, proposedBy: null, proposedByName: null, acceptedAt, callTime: null });
+          for (const row of data) next.set(row.comp_team_id, { entryId: row.id, proposedBy: null, proposedByName: null, acceptedAt, callTime: null, durationMinutes: 30 });
           return next;
         });
       }
@@ -384,6 +386,7 @@ export function CompetitionWizard() {
     setEditingId(compTeamId);
     setConflict(null);
     const existing = entries.get(compTeamId);
+    setEditDuration(existing?.durationMinutes ?? 30);
     if (existing?.callTime && studio) {
       const mins = new Date(existing.callTime);
       const parts = new Intl.DateTimeFormat("en-US", { timeZone: studio.timezone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).formatToParts(mins);
@@ -407,10 +410,10 @@ export function CompetitionWizard() {
         return;
       }
     }
-    const { error: updErr } = await callApp("set_competition_entry_call_time", { p_entry_id: existing.entryId, p_call_time: iso });
+    const { error: updErr } = await callApp("set_competition_entry_call_time", { p_entry_id: existing.entryId, p_call_time: iso, p_duration_minutes: editDuration });
     setSavingTime(false);
     if (!updErr) {
-      setEntries((prev) => new Map(prev).set(compTeamId, { ...existing, callTime: iso }));
+      setEntries((prev) => new Map(prev).set(compTeamId, { ...existing, callTime: iso, durationMinutes: editDuration }));
       setEditingId(null);
       setConflict(null);
     }
@@ -679,7 +682,16 @@ export function CompetitionWizard() {
                         <div style={{ margin: "0 4px 16px", padding: "16px 18px", background: "var(--sand)", borderRadius: 12, display: "flex", gap: 20, flexWrap: "wrap" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
-                            <PrimaryButton onClick={() => saveCallTime(t.id)} disabled={!editTime || savingTime}>
+                            <input
+                              type="number"
+                              min={1}
+                              value={editDuration}
+                              onChange={(e) => setEditDuration(Number(e.target.value))}
+                              style={{ width: 64 }}
+                              aria-label="Duration in minutes"
+                            />
+                            <span style={{ fontSize: 12, color: "var(--ink-3)" }}>min</span>
+                            <PrimaryButton onClick={() => saveCallTime(t.id)} disabled={!editTime || editDuration <= 0 || savingTime}>
                               {savingTime ? "Saving…" : "Save"}
                             </PrimaryButton>
                           </div>

@@ -84,10 +84,19 @@ export type Database = {
         }
         Returns: string
       }
-      set_competition_entry_call_time: {
-        Args: { p_call_time: string; p_entry_id: string }
-        Returns: undefined
-      }
+      set_competition_entry_call_time:
+        | {
+            Args: { p_call_time: string; p_entry_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_call_time: string
+              p_duration_minutes?: number
+              p_entry_id: string
+            }
+            Returns: undefined
+          }
       start_direct_thread: {
         Args: { p_other_person_id: string }
         Returns: string
@@ -455,6 +464,7 @@ export type Database = {
           comp_team_id: string
           competition_id: string
           created_at: string
+          duration_minutes: number
           id: string
           proposed_by: string | null
           studio_id: string
@@ -466,6 +476,7 @@ export type Database = {
           comp_team_id: string
           competition_id: string
           created_at?: string
+          duration_minutes?: number
           id?: string
           proposed_by?: string | null
           studio_id: string
@@ -477,6 +488,7 @@ export type Database = {
           comp_team_id?: string
           competition_id?: string
           created_at?: string
+          duration_minutes?: number
           id?: string
           proposed_by?: string | null
           studio_id?: string
