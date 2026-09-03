@@ -121,15 +121,6 @@ these values, and they don't sync across devices. Revisit if real
 notification delivery is ever added — these three toggles are exactly
 what a real preferences table would need to store per-person.
 
-### 27. Bulletin has no "Seen by X of Y" — no read-tracking table exists
-**Found in:** Task 17.
-Every Bulletin artboard shows a "Seen by 42 of 58 →" line per post — there
-is no table anywhere in the schema that tracks who has viewed a `post`
-(`thread_read_state` is Messaging-specific, for `message_thread`, not
-`post`). Omitted entirely rather than faked. Revisit only if a real
-post-read-tracking table is ever added — it would need its own migration,
-which this codebase cannot write (see CLAUDE.md's four rules).
-
 ### 31. No drag-to-reorder on Essentials lists
 **Found in:** Task 19.
 `StudioEssentials.dc.html`'s own copy says items can be "drag to reorder,
@@ -258,6 +249,70 @@ correct in principle; the offline path itself hasn't been proven live the
 way everything else in this task was.
 
 ## Resolved
+
+### 44. `thread_read_state` only ever showed a viewer their own read status — "Seen by X of Y" was never really X
+**Found and fixed in:** the deficiencies-backlog pass following Task 27
+(Group 4), while building #27 below and deliberately checking
+`thread_read_state`'s real shape before copying its pattern into a second
+table, rather than assuming it was already correct.
+`thread_read_state`'s only policy, `read_state_rw`, was `person_id IN
+visible_person_ids()` for every command — meaning a `SELECT` could only
+ever return rows where `person_id` is the *viewer's own* (or their
+guarded dancer's). `MessagingThread.tsx`'s "Seen by X of Y" query has no
+`.eq("person_id", ...)` filter — it asks for every read-state row on the
+thread and lets RLS narrow it — so it silently got back only the viewer's
+own row, never any other real participant's. Every prior live test of
+this feature (Task 21, Deficiency #32's fix) only checked a single
+viewer's own count in isolation, which looks correct on its own ("1 of 2"
+after your own send) without ever confirming a *second* viewer's read
+shows up too — so this went unnoticed since Deficiency #1 shipped.
+
+Confirmed live before fixing: two real participants (an instructor and a
+dancer, both on Jazz II) each marked the same thread read; querying
+`thread_read_state` as the instructor returned only the instructor's own
+row, not the dancer's, despite both being real and both querying the
+exact same `thread_id`.
+
+Fixed by splitting the single overly-narrow `read_state_rw` (`ALL`)
+policy into a real `SELECT` (`thread_id IN threads_i_can_see()` — anyone
+who can see the thread can see who's read it, matching `message_read`'s
+own visibility) plus separate `INSERT`/`UPDATE` (still own-row-only,
+unchanged). Verified live: re-ran the same two-participant check after
+the fix — the instructor now correctly sees both their own and the
+dancer's row.
+
+### 27. Bulletin now has "Seen by X of Y" — real read-tracking
+**Found in:** Task 17. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 4).
+Added `post_read_state` (`post_id`, `person_id`, `last_read_at`, same
+shape as `thread_read_state`) with RLS built correctly from the start
+rather than copying #44's bug forward: `SELECT` is `post_id IN (SELECT id
+FROM post)` (implicitly RLS-filtered by `post`'s own visibility, same
+idiom `post_media_read` already uses), `INSERT`/`UPDATE` are
+`person_id IN my_confirmed_person_ids()` (own row only). `BulletinFeed`
+now computes a real per-scope audience size — the same
+`team_member`/`comp_team_cast`/confirmed-studio-member counts
+`MessagingThread.tsx` already uses for its own "Seen by" — and marks
+every loaded post read for the viewer once (matching
+`thread_read_state`'s "mark on open" convention, not true viewport
+tracking).
+
+One immediacy gap fixed proactively rather than shipped and found later:
+the initial `post_read_state` fetch happens before the "mark this post
+read" upsert completes, so a viewer's own just-triggered read wouldn't be
+in that first read — same class of bug as #32 (Messaging). Fixed the same
+way: track which posts the viewer didn't already have a row for, and bump
+those posts' local `seenCount` by one once the upsert confirms, instead
+of waiting for a reload.
+
+Verified live with two real browser contexts (instructor + dancer, both
+real Jazz II participants): posted as the instructor, saw "Seen by 1 of
+2" immediately (their own read, no reload); the dancer's own view showed
+"Seen by 2 of 2" immediately too; the instructor's view showed the same
+"2 of 2" on a fresh load. All test posts and read-state rows removed
+afterward.
+
+
 
 ### 41. Pending/declined people could browse catalog names (Team, Comp Team, Studio Space, Season, Studio) studio-wide
 **Found in:** Task 27's cross-account audit. **Fixed in:** the

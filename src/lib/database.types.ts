@@ -47,6 +47,7 @@ export type Database = {
       is_director: { Args: { p_studio_id: string }; Returns: boolean }
       is_instructor: { Args: { p_studio_id: string }; Returns: boolean }
       my_confirmed_person_ids: { Args: never; Returns: string[] }
+      my_confirmed_studio_ids: { Args: never; Returns: string[] }
       my_person_ids: { Args: never; Returns: string[] }
       my_studio_ids: { Args: never; Returns: string[] }
       publish_competition: {
@@ -1376,6 +1377,46 @@ export type Database = {
           },
           {
             foreignKeyName: "post_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "post"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_read_state: {
+        Row: {
+          last_read_at: string
+          person_id: string
+          post_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          person_id: string
+          post_id: string
+        }
+        Update: {
+          last_read_at?: string
+          person_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_read_state_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_read_state_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "person_with_login"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_read_state_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "post"

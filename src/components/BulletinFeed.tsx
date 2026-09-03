@@ -23,6 +23,7 @@ interface PostRow {
   authorRoleLabel: string | null;
   media: MediaRef[];
   reactorIds: string[];
+  seenCount: number;
 }
 
 type Scope = "studio" | "team" | "comp_team";
@@ -36,10 +37,15 @@ type Scope = "studio" | "team" | "comp_team";
 // cast + choreographer + Director, verified live rather than assumed. See
 // BUILD_PLAN.md Task 17.
 //
-// "Seen by X of Y" from the artboards has no backing table (no post-read-
-// tracking exists anywhere in the schema) — omitted rather than faked, see
-// docs/DEFICIENCIES.md. Reactions are a single fixed kind ("👍"), one tap
-// upserts/deletes your own row; no artboard shows a multi-emoji picker.
+// "Seen by X of Y" now backed by post_read_state (docs/DEFICIENCIES.md
+// #27, resolved) — Y is the same real per-scope audience size
+// MessagingThread.tsx already computes (team_member/comp_team_cast counts,
+// or confirmed studio members), X is how many of that audience have a
+// post_read_state row for this post. Every post loaded into the feed gets
+// marked read for the current viewer once, matching thread_read_state's
+// "mark on open" convention rather than true viewport tracking. Reactions
+// are a single fixed kind ("👍"), one tap upserts/deletes your own row; no
+// artboard shows a multi-emoji picker.
 export function BulletinFeed({
   scope,
   destinationId,
@@ -59,6 +65,7 @@ export function BulletinFeed({
   const { person } = useAuth();
   const studio = useStudio();
   const [posts, setPosts] = useState<PostRow[] | null>(null);
+  const [audienceSize, setAudienceSize] = useState<number | null>(null);
   const [expandedReactors, setExpandedReactors] = useState<string | null>(null);
   const [reactorNames, setReactorNames] = useState<Map<string, string>>(new Map());
   const [reloadKey, setReloadKey] = useState(0);
@@ -72,6 +79,21 @@ export function BulletinFeed({
       else if (scope === "comp_team") q = q.eq("comp_team_id", destinationId!);
       const { data: postRows } = await q.order("created_at", { ascending: false });
       if (cancelled) return;
+
+      // Same real per-scope audience size MessagingThread.tsx computes for
+      // "Seen by X of Y" — team_member/comp_team_cast counts, or confirmed
+      // studio members. One query per destination, not per post.
+      if (scope === "team") {
+        const { count } = await supabase.from("team_member").select("person_id", { count: "exact", head: true }).eq("team_id", destinationId!);
+        if (!cancelled) setAudienceSize(count ?? 0);
+      } else if (scope === "comp_team") {
+        const { count } = await supabase.from("comp_team_cast").select("person_id", { count: "exact", head: true }).eq("comp_team_id", destinationId!);
+        if (!cancelled) setAudienceSize(count ?? 0);
+      } else {
+        const { count } = await supabase.from("person_with_login").select("id", { count: "exact", head: true }).eq("status", "confirmed").eq("is_active", true);
+        if (!cancelled) setAudienceSize(count ?? 0);
+      }
+
       if (!postRows || postRows.length === 0) {
         setPosts([]);
         return;
@@ -79,10 +101,11 @@ export function BulletinFeed({
 
       const postIds = postRows.map((p) => p.id);
       const authorIds = [...new Set(postRows.map((p) => p.author_id))];
-      const [{ data: authorRows }, { data: mediaRows }, { data: reactionRows }] = await Promise.all([
+      const [{ data: authorRows }, { data: mediaRows }, { data: reactionRows }, { data: readRows }] = await Promise.all([
         supabase.from("person").select("id, full_name").in("id", authorIds),
         supabase.from("post_media").select("post_id, media_item:media_item_id(id, caption, kind, storage_path)").in("post_id", postIds),
         supabase.from("reaction").select("post_id, person_id").in("post_id", postIds),
+        supabase.from("post_read_state").select("post_id, person_id").in("post_id", postIds),
       ]);
       const authorName = new Map((authorRows ?? []).map((a) => [a.id, a.full_name]));
       const mediaByPost = new Map<string, MediaRef[]>();
@@ -99,6 +122,12 @@ export function BulletinFeed({
         arr.push(r.person_id);
         reactorsByPost.set(r.post_id, arr);
       }
+      const seenCountByPost = new Map<string, number>();
+      const alreadyReadByViewer = new Set<string>();
+      for (const r of readRows ?? []) {
+        seenCountByPost.set(r.post_id, (seenCountByPost.get(r.post_id) ?? 0) + 1);
+        if (r.person_id === person!.id) alreadyReadByViewer.add(r.post_id);
+      }
 
       if (cancelled) return;
       setPosts(
@@ -112,8 +141,23 @@ export function BulletinFeed({
           authorRoleLabel: scope === "studio" ? null : roleResolver?.(p.author_id) ?? null,
           media: mediaByPost.get(p.id) ?? [],
           reactorIds: reactorsByPost.get(p.id) ?? [],
+          seenCount: seenCountByPost.get(p.id) ?? 0,
         }))
       );
+
+      // Mark every loaded post read for the current viewer. The viewer's
+      // own read row for a post they hadn't already read wouldn't be in
+      // readRows above (fetched before this upsert runs) — bump those
+      // posts' local seenCount by one instead of waiting for a reload,
+      // same lesson as #32's fix for Messaging (a client-vs-server
+      // ordering gap, not a display bug).
+      const newlyRead = postIds.filter((id) => !alreadyReadByViewer.has(id));
+      const { error: markErr } = await supabase
+        .from("post_read_state")
+        .upsert(postIds.map((id) => ({ post_id: id, person_id: person!.id })), { onConflict: "post_id,person_id" });
+      if (!markErr && newlyRead.length > 0 && !cancelled) {
+        setPosts((prev) => (prev ? prev.map((p) => (newlyRead.includes(p.id) ? { ...p, seenCount: p.seenCount + 1 } : p)) : prev));
+      }
     }
     load();
     return () => {
@@ -223,6 +267,11 @@ export function BulletinFeed({
                       </button>
                     )}
                   </div>
+                  {audienceSize !== null && audienceSize > 0 && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: "var(--ink-3)" }}>
+                      Seen by {post.seenCount} of {audienceSize}
+                    </div>
+                  )}
                   {expandedReactors === post.id && (
                     <div style={{ marginTop: 9, fontSize: 12, color: "var(--ink-2)" }}>
                       {post.reactorIds.map((id) => reactorNames.get(id) ?? "…").join(", ")}
