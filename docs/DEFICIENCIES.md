@@ -401,6 +401,27 @@ shows "3 Teams," TeamsIndex and DirectorTeamsMobile both correctly show
 extraction (moved verbatim). Revisit by adding the same `.eq("is_active",
 true)` DirectorHome's other counts already imply.
 
+### 41. Pending/declined people can browse catalog names (Team, Comp Team, Dance Style, Studio Space, Season, Studio) studio-wide
+**Found in:** Task 27's cross-account audit, while investigating the
+content-leak fix below (Resolved, this same task).
+`team_read`, `comp_team_read`, `style_read`, `space_read`, `season_read`,
+and `studio_read` all gate on `app.my_studio_ids()`, which filters only on
+`person.is_active` — not `status`. A person who redeemed a join code but
+is still `pending` (or even `declined`) can `SELECT` every Team/Comp
+Team's name and level/type, every Dance Style name, every Studio Space
+name, and the studio's own profile fields (name, address, phone, email,
+timezone), confirmed live via raw `supabase-js` queries as the deliberately-
+pending test account. Lower severity than the content leak fixed this same
+task — no message/post/essentials/media CONTENT is exposed this way, only
+catalog names/structure — and it may be a deliberate onboarding choice
+(so a not-yet-confirmed person can see roughly what they're joining).
+Deliberately left unfixed: scoped out of this task's fix by the user's own
+choice (only the four content-bearing tables — `post`, `message`/
+`message_thread`, `essentials_item`, `media_item` — were approved for a
+fix). If this should also be tightened, the same pattern applies: swap
+`app.my_studio_ids()` for `app.my_confirmed_studio_ids()` (added this
+task) in each of these six policies.
+
 ## Resolved
 
 ### 1. `message_thread` has no write path from the client
@@ -638,3 +659,46 @@ exists on `studio_space` but BUILD_PLAN.md never asks for a reorder UI,
 and lists already read in a stable, sensible order (`sort_order`, then
 `name`). Not logged as an open gap since nothing describes it as
 required.
+
+### 42. A `pending` (unvetted) person could read real studio-wide Bulletin, Messaging, Essentials, and Media content
+**Found and fixed in:** Task 27's cross-account audit.
+Set up five real test accounts (Director, instructor, adult dancer,
+parent, and a deliberately-still-`pending` self-serve instructor — the
+studio had no active Teams and zero Comp Teams to test against, so this
+task also reactivated Jazz II and created a real "Audit Test Comp Team"
+with cast, per the user's choice to keep this as a working baseline
+rather than tear it down afterward). Confirmed both of BUILD_PLAN.md's
+named risks are handled correctly: Comp Team Bulletin is genuinely
+cast/choreographer-only (verified with a real post — a confirmed parent
+with no team/comp_team membership got "No posts yet." even though a real
+post existed), and a pending person is fully invisible everywhere in the
+app's own routing.
+
+But checking the *raw* API (not just the app's UI/routing — this
+project's Rule 2: RLS must be the actual boundary, not a hidden button)
+found a real gap: `post_read`, `app.threads_i_can_see()` (which
+`message_read`/`thread_read` both depend on), `essentials_read`, and
+`media_read` all gated their `scope='studio'` branch on
+`app.my_studio_ids()`, which filters only on `person.is_active` — not
+`status`. Confirmed live: created a real studio-wide Bulletin post and a
+real studio-wide Message as Director, then read both back in full,
+including body text, as the pending test account via a raw `supabase-js`
+query — directly contradicting `PROJECT_KNOWLEDGE.md`'s stated rule that
+a pending person has "zero visibility... invisible to every role's
+roster/team/thread queries."
+
+Fixed with `supabase/migrations/20260903025458_fix_pending_studio_content_leak.sql`:
+a new `app.my_confirmed_studio_ids()` helper (same shape as
+`my_studio_ids()`, built on `my_confirmed_person_ids()` instead), swapped
+into just the `scope='studio'` branch of the four content policies above.
+Team/Comp Team-scope branches were untouched — those already gate through
+`teams_i_can_see()`/`comp_teams_i_can_see()`, which require an actual
+`team_member`/`comp_team_cast` row, not just studio membership. Verified
+live, both before (leak confirmed) and after (leak closed, zero
+regression for confirmed accounts) the fix, via raw `supabase-js` queries
+for all five test accounts against real seeded content in all four
+tables; all test content removed afterward. Six other tables
+(`team`/`comp_team`/`dance_style`/`studio_space`/`season`/`studio`) have
+the identical `my_studio_ids()`-without-status-check shape but only
+expose catalog names, not content — deliberately left unfixed this task,
+tracked separately as Deficiency #41.
