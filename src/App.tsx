@@ -22,6 +22,7 @@ import { Settings } from "./pages/Settings";
 import { CompleteProfile } from "./pages/CompleteProfile";
 import { ConfirmQueue } from "./pages/ConfirmQueue";
 import { PersonDetail } from "./pages/PersonDetail";
+import { EventDetail } from "./pages/EventDetail";
 import { InviteSomeone } from "./pages/InviteSomeone";
 import { Roster } from "./pages/Roster";
 import { TeamsIndex } from "./pages/TeamsIndex";
@@ -125,6 +126,7 @@ function AppRoutes() {
       <Route path="/roster" element={<Roster />} />
       <Route path="/confirm-queue" element={<ConfirmQueue />} />
       <Route path="/person/:id" element={<PersonDetail />} />
+      <Route path="/event/:id" element={<EventDetail />} />
       <Route path="/studio-calendar" element={<StudioCalendarReview />} />
       <Route path="/invite-someone" element={<InviteSomeone />} />
       <Route path="/team/:id/roster" element={<TeamRosterManager />} />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase, callApp } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
@@ -29,6 +30,7 @@ export function GlobalSchedule() {
   const { person } = useAuth();
   const studio = useStudio();
   const isDirector = hasRole(person, "director");
+  const navigate = useNavigate();
 
   const [destinations, setDestinations] = useState<Destination[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string> | null>(null); // null = no filter applied (show everything)
@@ -194,6 +196,7 @@ export function GlobalSchedule() {
           fetchEvents={fetchEvents}
           emptyText="Nothing scheduled this week."
           addEvent={{ to: "/add-event", label: "Add event" }}
+          onEventClick={(event) => navigate(`/event/${event.id}`)}
         />
       </div>
 

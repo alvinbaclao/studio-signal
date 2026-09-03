@@ -35,11 +35,14 @@ export function ScheduleView({
   fetchEvents,
   emptyText,
   addEvent,
+  onEventClick,
 }: {
   timeZone: string;
   fetchEvents: (range: { start: Date; end: Date }) => Promise<ScheduleEvent[]>;
   emptyText: string;
   addEvent?: { to: string; label: string };
+  /** Optional — a row is only clickable when the caller provides this (docs/DEFICIENCIES.md #20). */
+  onEventClick?: (event: ScheduleEvent) => void;
 }) {
   const [mode, setMode] = useState<ViewMode>("week");
   const [reference, setReference] = useState(() => new Date());
@@ -151,9 +154,9 @@ export function ScheduleView({
         ) : events === null ? (
           <p style={{ color: "var(--ink-2)", fontSize: 13 }}>Loading…</p>
         ) : mode === "month" && selectedDayKey ? (
-          <DayAgenda dayKey={selectedDayKey} events={eventsByDay.get(selectedDayKey) ?? []} timeZone={timeZone} />
+          <DayAgenda dayKey={selectedDayKey} events={eventsByDay.get(selectedDayKey) ?? []} timeZone={timeZone} onEventClick={onEventClick} />
         ) : (
-          <Agenda range={range} timeZone={timeZone} eventsByDay={eventsByDay} emptyText={emptyText} />
+          <Agenda range={range} timeZone={timeZone} eventsByDay={eventsByDay} emptyText={emptyText} onEventClick={onEventClick} />
         )}
       </div>
     </div>
@@ -305,11 +308,13 @@ function Agenda({
   timeZone,
   eventsByDay,
   emptyText,
+  onEventClick,
 }: {
   range: { start: Date; end: Date };
   timeZone: string;
   eventsByDay: Map<string, ScheduleEvent[]>;
   emptyText: string;
+  onEventClick?: (event: ScheduleEvent) => void;
 }) {
   const totalDays = Math.round((range.end.getTime() - range.start.getTime()) / 86400000);
   const days = Array.from({ length: totalDays }, (_, i) => addDays(range.start, i));
@@ -326,19 +331,19 @@ function Agenda({
         const key = zonedDateKey(d.toISOString(), timeZone);
         const dayEvents = eventsByDay.get(key) ?? [];
         const label = formatLongDateInZone(d.toISOString(), timeZone) + (key === todayKey ? " · Today" : "");
-        return <DayCard key={key} label={label} events={dayEvents} timeZone={timeZone} />;
+        return <DayCard key={key} label={label} events={dayEvents} timeZone={timeZone} onEventClick={onEventClick} />;
       })}
     </div>
   );
 }
 
-function DayAgenda({ dayKey, events, timeZone }: { dayKey: string; events: ScheduleEvent[]; timeZone: string }) {
+function DayAgenda({ dayKey, events, timeZone, onEventClick }: { dayKey: string; events: ScheduleEvent[]; timeZone: string; onEventClick?: (event: ScheduleEvent) => void }) {
   const todayKey = zonedDateKey(new Date().toISOString(), timeZone);
   const label = formatLongDateInZone(events[0]?.starts_at ?? `${dayKey}T12:00:00Z`, timeZone) + (dayKey === todayKey ? " · Today" : "");
-  return <DayCard label={label} events={events} timeZone={timeZone} />;
+  return <DayCard label={label} events={events} timeZone={timeZone} onEventClick={onEventClick} />;
 }
 
-function DayCard({ label, events, timeZone }: { label: string; events: ScheduleEvent[]; timeZone: string }) {
+function DayCard({ label, events, timeZone, onEventClick }: { label: string; events: ScheduleEvent[]; timeZone: string; onEventClick?: (event: ScheduleEvent) => void }) {
   return (
     <div>
       <div
@@ -366,6 +371,7 @@ function DayCard({ label, events, timeZone }: { label: string; events: ScheduleE
                 title={e.title ?? eventTypeLabel(e.event_type)}
                 subtitle={e.title ? eventTypeLabel(e.event_type) : undefined}
                 dotColor={e.dotColor}
+                onClick={onEventClick ? () => onEventClick(e) : undefined}
               />
             );
           })

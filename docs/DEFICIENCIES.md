@@ -28,20 +28,6 @@ is interactive but doesn't affect the saved event or booking request in
 any way. Revisit alongside #6 if real notification delivery is ever
 added.
 
-### 20. No entry point yet for "Request a move" on an existing event
-**Found in:** Task 13.
-BUILD_PLAN's move path ("an instructor's date/time/space edits are
-replaced with Request a move, opens Add Event pre-filled with
-moves_event_id") needs a screen that shows an existing event and lets an
-instructor act on it — no such screen (or artboard) exists anywhere in
-the build yet, so there's nothing to click "Request a move" from. The
-data-layer side is real and verified live: `AddEvent` accepts
-`?movesEvent=<id>` and sets it on the resulting `booking_request`, and
-`RequestReviewModal`'s approval path updates that same event row instead
-of inserting a new one (confirmed via a direct DB check: same event id,
-same `created_at`, only the changed fields updated). Revisit once an
-event-detail/edit screen exists to link from.
-
 ### 22. Unified Home's "Needs your attention" band and "Next up" are narrower than the artboard
 **Found in:** Task 14. **Narrowed in:** the deficiencies-backlog pass
 following Task 27 (Group 1: Inbox fixed, see #43, Resolved; Group 3:
@@ -182,6 +168,42 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 20. "Request a move" now has a real entry point — a new EventDetail screen
+**Found in:** Task 13. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+The move data-layer was already real (verified back in Task 13:
+`AddEvent` accepts `?movesEvent=<id>`, `RequestReviewModal`'s approval
+path updates the same event row rather than inserting a new one) —
+nothing existed to click "Request a move" *from*. No design-reference
+artboard exists for an event-detail screen either (checked before
+building), so `EventDetail.tsx` (`/event/:id`) follows this codebase's
+own established detail-screen pattern (`PersonDetail`) instead of porting
+a mockup: title, type, destination, when, where, notes, and one action
+button. `ScheduleView` gained an optional `onEventClick` prop (threaded
+through its `Agenda`/`DayAgenda`/`DayCard` internals down to
+`ScheduleRow`'s own already-existing but previously-unused `onClick`) —
+opt-in per caller, so every other `ScheduleView` consumer is unaffected;
+only `GlobalSchedule` wires it, navigating to the new route.
+
+The action button reads "Move event" (direct) for a Director or "Request
+a move" (creates a `booking_request`) for anyone else — both link to the
+same `/add-event?movesEvent=<id>`, since `AddEvent.tsx` already branches
+internally on `canCreateDirectly`. Visibility mirrors `event_update`'s
+real RLS (checked via `pg_policies` first, not assumed): Director, or the
+event's own teaching instructor/choreographing choreographer — resolved
+through `competition_entry.comp_team_id` for a `call_time` event, the
+same one-hop-further case `#14`'s fix needed, since that event type's
+`comp_team_id` column is always null by design.
+
+Verified live as three different real roles on the same real event: the
+teaching instructor saw "Request a move" with an approval-note; a plain
+dancer on the same team correctly saw no move button at all; the
+Director saw "Move event." Followed the instructor's link through to
+`AddEvent` and confirmed it landed pre-filled exactly as the existing
+move flow already produced, closing the loop end-to-end.
+
+
 
 ### 14. "Call time" is now offered in Add Event's type picker
 **Found in:** Task 12. **Fixed in:** the deficiencies-backlog pass
