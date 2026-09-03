@@ -1,7 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/AuthProvider";
 import { useTeamsIndexData } from "../lib/useTeamsIndexData";
 import { formatShortDate } from "../lib/format";
+
+interface UnreadCounts {
+  studio: number;
+  byTeam: Map<string, number>;
+  byCompTeam: Map<string, number>;
+}
 
 // Ports design-reference/DirectorTeamsMobile.dc.html — the mobile browse
 // point DirectorHomeMobile's Quick actions needs: a Director scoped over
@@ -13,15 +21,43 @@ import { formatShortDate } from "../lib/format";
 // Team's own real Home (TeamHome/CompTeamHome), already built and
 // already responsive.
 //
-// The artboard's "4 new"/"All read" marker has no real data behind it —
-// neither Bulletin read-tracking (Deficiency #27) nor DirectorHome's own
-// "Messaging oversight" (a static placeholder, never wired to real data)
-// exist yet — dropped rather than faked, same as every other
-// schema-shaped gap in this build.
+// The artboard's "4 new"/"All read" marker is real now that Bulletin
+// read-tracking exists (post_read_state, docs/DEFICIENCIES.md #27,
+// resolved) — per destination, how many of its posts this Director has
+// no read-state row for. Computed here directly rather than through
+// DirectorHome's own "Messaging oversight" (still a static placeholder,
+// unrelated — that's Messaging, not Bulletin).
 export function DirectorTeamsMobile() {
+  const { person } = useAuth();
   const { data } = useTeamsIndexData();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [unread, setUnread] = useState<UnreadCounts | null>(null);
+
+  useEffect(() => {
+    if (!person) return;
+    let cancelled = false;
+    async function load() {
+      const [{ data: postRows }, { data: readRows }] = await Promise.all([
+        supabase.from("post").select("id, scope, team_id, comp_team_id").is("deleted_at", null),
+        supabase.from("post_read_state").select("post_id").eq("person_id", person!.id),
+      ]);
+      if (cancelled) return;
+      const readIds = new Set((readRows ?? []).map((r) => r.post_id));
+      const counts: UnreadCounts = { studio: 0, byTeam: new Map(), byCompTeam: new Map() };
+      for (const p of postRows ?? []) {
+        if (readIds.has(p.id)) continue;
+        if (p.scope === "studio") counts.studio += 1;
+        else if (p.scope === "team" && p.team_id) counts.byTeam.set(p.team_id, (counts.byTeam.get(p.team_id) ?? 0) + 1);
+        else if (p.scope === "comp_team" && p.comp_team_id) counts.byCompTeam.set(p.comp_team_id, (counts.byCompTeam.get(p.comp_team_id) ?? 0) + 1);
+      }
+      if (!cancelled) setUnread(counts);
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [person]);
 
   const q = search.trim().toLowerCase();
   const teams = useMemo(() => (data?.teams ?? []).filter((t) => !q || t.name.toLowerCase().includes(q)), [data, q]);
@@ -66,6 +102,15 @@ export function DirectorTeamsMobile() {
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--band-ink)" }}>Studio</div>
             <div style={{ fontSize: 11.5, color: "var(--band-ink-2)", marginTop: 2 }}>Whole-studio posts, media &amp; essentials</div>
           </div>
+          {unread &&
+            (unread.studio > 0 ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, color: "var(--signal)", flexShrink: 0, whiteSpace: "nowrap" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--signal)" }} />
+                {unread.studio} new
+              </span>
+            ) : (
+              <span style={{ fontSize: 10.5, color: "var(--band-ink-2)", flexShrink: 0, whiteSpace: "nowrap" }}>All read</span>
+            ))}
           <ChevronIcon color="var(--band-ink-2)" />
         </Link>
       </div>
@@ -75,7 +120,7 @@ export function DirectorTeamsMobile() {
           <EmptyRow text="No Teams yet." />
         ) : (
           teams.map((t, i) => (
-            <Row key={t.id} to={`/team/${t.id}`} i={i} initials={t.name}>
+            <Row key={t.id} to={`/team/${t.id}`} i={i} initials={t.name} trailing={unread && <UnreadMarker count={unread.byTeam.get(t.id) ?? 0} />}>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
                 {[t.level, t.instructorNames.length > 0 ? t.instructorNames.join(", ") : "instructor not yet assigned", `${t.dancerCount} ${t.dancerCount === 1 ? "dancer" : "dancers"}`].filter(Boolean).join(" · ")}
@@ -90,7 +135,7 @@ export function DirectorTeamsMobile() {
           <EmptyRow text="No Comp Teams yet." />
         ) : (
           compTeams.map((c, i) => (
-            <Row key={c.id} to={`/comp-team/${c.id}`} i={i} initials={c.name}>
+            <Row key={c.id} to={`/comp-team/${c.id}`} i={i} initials={c.name} trailing={unread && <UnreadMarker count={unread.byCompTeam.get(c.id) ?? 0} />}>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{c.name}</div>
               <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
                 {[c.choreographerNames.length > 0 ? c.choreographerNames.join(", ") : "not yet assigned", `${c.dancerCount} ${c.dancerCount === 1 ? "dancer" : "dancers"}`].join(" · ")}
@@ -130,7 +175,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({ to, i, initials, children }: { to: string; i: number; initials: string; children: React.ReactNode }) {
+function Row({ to, i, initials, trailing, children }: { to: string; i: number; initials: string; trailing?: React.ReactNode; children: React.ReactNode }) {
   return (
     <Link to={to} style={{ display: "flex", alignItems: "center", gap: 13, padding: "13px 16px", borderTop: i === 0 ? "none" : "1px solid var(--sand)", color: "inherit", textDecoration: "none" }}>
       <Swatch bg="var(--sand)" color="var(--ink-2)">
@@ -142,8 +187,20 @@ function Row({ to, i, initials, children }: { to: string; i: number; initials: s
           .toUpperCase()}
       </Swatch>
       <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      {trailing}
       <ChevronIcon />
     </Link>
+  );
+}
+
+function UnreadMarker({ count }: { count: number }) {
+  return count > 0 ? (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, color: "var(--signal-deep)", flexShrink: 0, whiteSpace: "nowrap" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--signal-deep)" }} />
+      {count} new
+    </span>
+  ) : (
+    <span style={{ fontSize: 10.5, color: "var(--ink-3)", flexShrink: 0, whiteSpace: "nowrap" }}>All read</span>
   );
 }
 

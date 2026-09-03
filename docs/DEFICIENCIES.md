@@ -125,18 +125,6 @@ page is read-only for everyone — no role-gating needed. Revisit only if
 `post`/`media_item` ever gain a real competition scope (a schema change,
 so out of this codebase's own reach regardless).
 
-### 39. `DirectorTeamsMobile` drops the "new posts"/"all read" marker
-**Found in:** Task 25.
-`DirectorTeamsMobile.dc.html` shows a "4 new"/"All read" badge per
-destination row, meant to reuse "DirectorHome's Messaging oversight
-data" per the artboard's own copy — but that section is itself a
-hardcoded "No conversations yet." placeholder (confirmed while checking,
-same root issue as Deficiency #38), and there's no Bulletin
-read-tracking table either (Deficiency #27). No real data exists for
-this marker from either angle, so it's dropped entirely rather than
-faked — rows show real name/instructor-or-choreographer/dancer-count
-captions only. Revisit once #27 (Bulletin read-tracking) exists.
-
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle
@@ -239,6 +227,22 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 39. `DirectorTeamsMobile` now shows a real "new posts"/"all read" marker
+**Found in:** Task 25. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5), now that #27 (Bulletin read-tracking)
+unblocked it.
+`DirectorTeamsMobile.dc.html`'s "4 new"/"All read" badge per destination
+row had no real data behind it before `post_read_state` existed. Now
+computed directly: for every non-deleted `post`, whether the current
+Director has a `post_read_state` row for it, grouped by
+`scope`/`team_id`/`comp_team_id`. Verified live at the mobile breakpoint:
+posted a real Bulletin update to Jazz II as a different confirmed person,
+confirmed the Director's Teams & groups list showed "1 new" on Jazz II's
+row (and "All read" on every other row), then confirmed it flipped to
+"All read" after the Director actually opened Jazz II's Bulletin.
+
+
 
 ### 37. Call-time events now use a real, Director-set duration
 **Found in:** Task 24. **Fixed in:** the deficiencies-backlog pass
