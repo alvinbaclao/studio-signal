@@ -35,6 +35,10 @@ export function GlobalSchedule() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
   const [reloadKey, setReloadKey] = useState(0);
+  // Per-destination role dot (docs/DEFICIENCIES.md #10) — "yours to teach/
+  // choreograph" vs "your own or your kid's" vs no personal role (a
+  // Director isn't personally either, so their events stay undotted).
+  const [dotByDest, setDotByDest] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!person) return;
@@ -66,6 +70,46 @@ export function GlobalSchedule() {
         ...teamRows.map((t) => ({ id: t.id, kind: "team" as const, name: t.name })),
         ...compTeamRows.map((c) => ({ id: c.id, kind: "comp_team" as const, name: c.name })),
       ]);
+
+      if (isDirector) return; // no personal teach/dance role to dot for a Director
+
+      const personId = person!.id;
+      const isParent = hasRole(person, "parent");
+      const [{ data: teachIds }, { data: choreographIds }, { data: myTeamMemberRows }, { data: myCastRows }, { data: guardianRows }] = await Promise.all([
+        callApp<string[]>("teams_i_teach"),
+        callApp<string[]>("comp_teams_i_choreograph"),
+        supabase.from("team_member").select("team_id").eq("person_id", personId).eq("role", "dancer"),
+        supabase.from("comp_team_cast").select("comp_team_id").eq("person_id", personId).eq("role", "dancer"),
+        isParent ? supabase.from("guardian_link").select("dancer_id").eq("guardian_id", personId) : Promise.resolve({ data: [] as { dancer_id: string }[] }),
+      ]);
+      if (cancelled) return;
+
+      const dancerIds = (guardianRows ?? []).map((g) => g.dancer_id);
+      const [{ data: dTeamRows }, { data: dCastRows }] =
+        dancerIds.length > 0
+          ? await Promise.all([
+              supabase.from("team_member").select("team_id").in("person_id", dancerIds).eq("role", "dancer"),
+              supabase.from("comp_team_cast").select("comp_team_id").in("person_id", dancerIds).eq("role", "dancer"),
+            ])
+          : [{ data: [] as { team_id: string }[] }, { data: [] as { comp_team_id: string }[] }];
+      if (cancelled) return;
+
+      const teachSet = new Set(teachIds ?? []);
+      const choreographSet = new Set(choreographIds ?? []);
+      const danceTeamIds = new Set([...(myTeamMemberRows ?? []).map((r) => r.team_id), ...(dTeamRows ?? []).map((r) => r.team_id)]);
+      const danceCompTeamIds = new Set([...(myCastRows ?? []).map((r) => r.comp_team_id), ...(dCastRows ?? []).map((r) => r.comp_team_id)]);
+
+      const dots = new Map<string, string>();
+      for (const t of teamRows) {
+        if (teachSet.has(t.id)) dots.set(t.id, "var(--signal-deep)");
+        else if (danceTeamIds.has(t.id)) dots.set(t.id, "var(--ink-2)");
+      }
+      for (const c of compTeamRows) {
+        if (choreographSet.has(c.id)) dots.set(c.id, "var(--signal-deep)");
+        else if (danceCompTeamIds.has(c.id)) dots.set(c.id, "var(--ink-2)");
+      }
+      setDotByDest(dots);
+      setReloadKey((k) => k + 1); // dots arrive after ScheduleView's first fetch — force it to re-fetch with them
     }
     load();
     return () => {
@@ -84,10 +128,10 @@ export function GlobalSchedule() {
         .order("starts_at");
       if (error) throw error;
       const rows = (data ?? []) as RawEvent[];
-      if (!selectedIds) return rows;
-      return rows.filter((e) => e.studio_wide || (e.team_id && selectedIds.has(e.team_id)) || (e.comp_team_id && selectedIds.has(e.comp_team_id)));
+      const filtered = selectedIds ? rows.filter((e) => e.studio_wide || (e.team_id && selectedIds.has(e.team_id)) || (e.comp_team_id && selectedIds.has(e.comp_team_id))) : rows;
+      return filtered.map((e) => ({ ...e, dotColor: (e.team_id && dotByDest.get(e.team_id)) || (e.comp_team_id && dotByDest.get(e.comp_team_id)) || undefined }));
     },
-    [selectedIds]
+    [selectedIds, dotByDest]
   );
 
   if (!person || !studio) return null;

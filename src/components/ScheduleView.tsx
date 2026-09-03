@@ -18,6 +18,11 @@ export interface ScheduleEvent {
   event_type: "class" | "rehearsal" | "booking" | "call_time";
   starts_at: string;
   ends_at: string;
+  /** Optional per-viewer role-indicator dot color (docs/DEFICIENCIES.md #10)
+   *  — set by the caller (e.g. GlobalSchedule), since only it knows the
+   *  viewer's relationship to this event's destination. Falls back to
+   *  ScheduleRow's own neutral default when omitted. */
+  dotColor?: string;
 }
 
 type ViewMode = "week" | "month";
@@ -360,6 +365,7 @@ function DayCard({ label, events, timeZone }: { label: string; events: ScheduleE
                 time={`${main}${meridiem}`}
                 title={e.title ?? eventTypeLabel(e.event_type)}
                 subtitle={e.title ? eventTypeLabel(e.event_type) : undefined}
+                dotColor={e.dotColor}
               />
             );
           })

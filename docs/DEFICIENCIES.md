@@ -153,15 +153,6 @@ literal "single-tap upsert/delete" BUILD_PLAN.md Task 17 describes: one
 fixed reaction kind (👍), tap to add your own, tap again to remove it.
 Revisit if a real multi-reaction picker is ever specified concretely.
 
-### 10. No per-event role indicator on Schedule rows
-**Found in:** Task 11.
-The reference artboards color-code each row with a dot showing whether an
-event is "yours to teach" (instructor) vs "your kid's" (parent) —
-`role-dot instr` / `role-dot parent`. Building that requires knowing, per
-event, whether the viewer teaches/choreographs its team or comp_team, or
-has a guardian_link to someone in it — real work not covered by Task 11's
-text. Every row currently uses ScheduleRow's plain neutral dot instead.
-
 ### 11. Offline detection on Schedule screens is unverified
 **Found in:** Task 11.
 `ScheduleView` shows "Can't load this week — you're offline" when its
@@ -216,6 +207,27 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 10. Global Schedule now shows a per-event role indicator dot
+**Found in:** Task 11. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+`ScheduleEvent` gained an optional `dotColor` field — set by the caller
+(only `GlobalSchedule` uses it; every other `ScheduleView` consumer is
+unaffected), since only the caller knows the viewer's relationship to an
+event's destination. `GlobalSchedule` computes it from the same
+`teams_i_teach`/`comp_teams_i_choreograph`/`team_member`/`comp_team_cast`/
+`guardian_link` data `HomeUnified`'s own role resolution already uses:
+teaching/choreographing a destination dots its events `--signal-deep`,
+dancing there yourself or through a guardian-linked dancer dots them
+`--ink-2`; no personal role (including every event a Director sees, who
+isn't personally either) stays undotted. A Director-specific branch skips
+this lookup entirely rather than running it for someone it can never
+apply to. Verified live: the same real event, viewed by the instructor
+who teaches that Team vs. a dancer on that same Team, rendered two
+different, correct dot colors (confirmed via computed style, not just
+visually).
+
+
 
 ### 9. Global Schedule now has a real Filter sheet
 **Found in:** Task 11. **Fixed in:** the deficiencies-backlog pass
