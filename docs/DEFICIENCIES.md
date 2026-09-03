@@ -64,16 +64,6 @@ whether they're confirmed at all before they'd ever appear on a roster).
 Every roster row renders the same way for now. Revisit if a real
 "unplaced dancer" concept is ever added.
 
-### 29. Bulletin reactions are one fixed kind, not a picker
-**Found in:** Task 17.
-The reference artboards show different emoji on different posts (👍 on
-one, ❤️ on another), but no artboard shows an actual picker UI — no tap
-target for choosing which emoji, just a static rendered pill per post.
-Read that as illustrative mockup variety, not a spec, and built the
-literal "single-tap upsert/delete" BUILD_PLAN.md Task 17 describes: one
-fixed reaction kind (👍), tap to add your own, tap again to remove it.
-Revisit if a real multi-reaction picker is ever specified concretely.
-
 ## Decided against building
 
 Real gaps, but the user explicitly chose not to build them (as opposed to
@@ -117,6 +107,56 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 29. Bulletin now has a real multi-emoji reaction picker
+**Found in:** Task 17. **Fixed in:** the deficiencies-backlog pass
+revisiting Group 6, at the user's explicit choice to go beyond the
+original literal spec (no artboard ever showed a real picker UI, just
+mockup variety across different posts — read as illustrative at the
+time, per this entry's original text).
+`reaction.kind` was already free text with no enum behind it — the only
+schema fact worth knowing was its primary key, `(post_id, person_id)`,
+which means a person can only ever hold one reaction per post; picking a
+different emoji has to switch it, not add a second. Turned out
+`ReactionBar.tsx` (a fully grouped-by-emoji, per-person-visible component)
+already existed but was dead code — `BulletinFeed.tsx` had its own
+separate inline single-👍 pill instead. Wired the existing component in
+rather than duplicating the pattern: added a small fixed candidate set
+(👍 ❤️ 🎉 👏) behind a "+" trigger, tapping a candidate (or an existing
+chip that isn't yours) upserts your reaction via `onConflict:
+"post_id,person_id"` (naturally replacing any previous `kind` on that one
+row); tapping your own active chip removes it. `BulletinFeed`'s reaction
+query now fetches `kind` and reactor names up front instead of the old
+lazy-loaded "tap count to reveal names" state, since `ReactionBar`
+already handles that reveal internally.
+
+A real, live-exploitable security gap surfaced while checking
+`reaction_write`'s RLS before touching it (this codebase's standing
+discipline: check the real policy, don't assume): it gated on
+`app.visible_person_ids()` (any status, plus guardian-linked dancers
+regardless of their own status) rather than the confirmed-only helper —
+the wrong family per `CLAUDE.md`'s Rule 4 for a policy deciding whether
+someone may *do* something. Every other "author this as yourself" policy
+(`post_insert`, `media_insert`) already uses `my_confirmed_person_ids()`;
+`reaction_write` was the one outlier. Confirmed live before fixing: a
+real pending (unvetted) test person, added to a real `team_member` row,
+could insert a real reaction row via a raw `supabase-js` call — nothing
+else in the chain blocked it, since `reaction_read`'s post-visibility
+check (`teams_i_can_see()`) has no status filter either. Fixed with
+`supabase/migrations/20260903181800_fix_reaction_write_confirmed_only.sql`,
+swapping both the `USING` and `WITH CHECK` clauses to
+`my_confirmed_person_ids()`. Verified live, both directions: the same
+pending account's insert now fails with a real `42501`; a confirmed
+person's own insert still succeeds, no regression.
+
+Verified the whole feature live with two real confirmed participants on
+Jazz II (instructor + dancer): picked ❤️, switched to 🎉 (confirmed no
+duplicate row, the old chip disappeared), the dancer's independent view
+showed the instructor's 🎉 immediately, the dancer added their own 👍
+(two chips), tapping 🎉's count revealed the instructor's real name, and
+removing the dancer's own 👍 left the instructor's 🎉 untouched. All test
+rows (`post`, `reaction`, `post_read_state`, `team_member`) removed
+afterward.
 
 ### 24. Comp Team Home now has "Level" in its subtitle
 **Found in:** Task 15. **Fixed in:** the deficiencies-backlog pass

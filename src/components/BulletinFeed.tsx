@@ -5,6 +5,7 @@ import { useAuth } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { useSignedUrl } from "../lib/storage";
 import { Avatar } from "../components/Avatar";
+import { ReactionBar, type ReactionSummary } from "../components/ReactionBar";
 
 interface MediaRef {
   id: string;
@@ -22,7 +23,7 @@ interface PostRow {
   authorName: string;
   authorRoleLabel: string | null;
   media: MediaRef[];
-  reactorIds: string[];
+  reactions: ReactionSummary[];
   seenCount: number;
 }
 
@@ -44,8 +45,9 @@ type Scope = "studio" | "team" | "comp_team";
 // post_read_state row for this post. Every post loaded into the feed gets
 // marked read for the current viewer once, matching thread_read_state's
 // "mark on open" convention rather than true viewport tracking. Reactions
-// are a single fixed kind ("👍"), one tap upserts/deletes your own row; no
-// artboard shows a multi-emoji picker.
+// use `ReactionBar`'s small fixed emoji set (docs/DEFICIENCIES.md #29) —
+// `reaction`'s primary key is (post_id, person_id), so picking a new
+// emoji switches your one reaction rather than adding a second.
 export function BulletinFeed({
   scope,
   destinationId,
@@ -66,8 +68,6 @@ export function BulletinFeed({
   const studio = useStudio();
   const [posts, setPosts] = useState<PostRow[] | null>(null);
   const [audienceSize, setAudienceSize] = useState<number | null>(null);
-  const [expandedReactors, setExpandedReactors] = useState<string | null>(null);
-  const [reactorNames, setReactorNames] = useState<Map<string, string>>(new Map());
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export function BulletinFeed({
       const [{ data: authorRows }, { data: mediaRows }, { data: reactionRows }, { data: readRows }] = await Promise.all([
         supabase.from("person").select("id, full_name").in("id", authorIds),
         supabase.from("post_media").select("post_id, media_item:media_item_id(id, caption, kind, storage_path)").in("post_id", postIds),
-        supabase.from("reaction").select("post_id, person_id").in("post_id", postIds),
+        supabase.from("reaction").select("post_id, person_id, kind").in("post_id", postIds),
         supabase.from("post_read_state").select("post_id, person_id").in("post_id", postIds),
       ]);
       const authorName = new Map((authorRows ?? []).map((a) => [a.id, a.full_name]));
@@ -116,12 +116,26 @@ export function BulletinFeed({
         arr.push(m);
         mediaByPost.set(r.post_id, arr);
       }
-      const reactorsByPost = new Map<string, string[]>();
+
+      const reactorIds = [...new Set((reactionRows ?? []).map((r) => r.person_id))];
+      const { data: reactorRows } = reactorIds.length
+        ? await supabase.from("person").select("id, full_name").in("id", reactorIds)
+        : { data: [] as { id: string; full_name: string }[] };
+      const reactorName = new Map((reactorRows ?? []).map((r) => [r.id, r.full_name]));
+
+      const reactionsByPost = new Map<string, ReactionSummary[]>();
       for (const r of reactionRows ?? []) {
-        const arr = reactorsByPost.get(r.post_id) ?? [];
-        arr.push(r.person_id);
-        reactorsByPost.set(r.post_id, arr);
+        const summaries = reactionsByPost.get(r.post_id) ?? [];
+        let summary = summaries.find((s) => s.emoji === r.kind);
+        if (!summary) {
+          summary = { emoji: r.kind, people: [], reactedByMe: false };
+          summaries.push(summary);
+        }
+        summary.people.push({ id: r.person_id, name: reactorName.get(r.person_id) ?? "Someone" });
+        if (r.person_id === person!.id) summary.reactedByMe = true;
+        reactionsByPost.set(r.post_id, summaries);
       }
+
       const seenCountByPost = new Map<string, number>();
       const alreadyReadByViewer = new Set<string>();
       for (const r of readRows ?? []) {
@@ -140,7 +154,7 @@ export function BulletinFeed({
           authorName: scope === "studio" ? studio!.name : authorName.get(p.author_id) ?? "Someone",
           authorRoleLabel: scope === "studio" ? null : roleResolver?.(p.author_id) ?? null,
           media: mediaByPost.get(p.id) ?? [],
-          reactorIds: reactorsByPost.get(p.id) ?? [],
+          reactions: reactionsByPost.get(p.id) ?? [],
           seenCount: seenCountByPost.get(p.id) ?? 0,
         }))
       );
@@ -165,32 +179,15 @@ export function BulletinFeed({
     };
   }, [person, studio, scope, destinationId, reloadKey, roleResolver]);
 
-  async function toggleReaction(post: PostRow) {
+  async function setReaction(post: PostRow, emoji: string) {
     if (!person) return;
-    const mine = post.reactorIds.includes(person.id);
-    if (mine) {
+    const mine = post.reactions.find((r) => r.reactedByMe);
+    if (mine?.emoji === emoji) {
       await supabase.from("reaction").delete().eq("post_id", post.id).eq("person_id", person.id);
     } else {
-      await supabase.from("reaction").insert({ post_id: post.id, person_id: person.id, studio_id: person.studio_id, kind: "👍" });
+      await supabase.from("reaction").upsert({ post_id: post.id, person_id: person.id, studio_id: person.studio_id, kind: emoji }, { onConflict: "post_id,person_id" });
     }
     setReloadKey((k) => k + 1);
-  }
-
-  async function showReactors(post: PostRow) {
-    if (expandedReactors === post.id) {
-      setExpandedReactors(null);
-      return;
-    }
-    setExpandedReactors(post.id);
-    const missing = post.reactorIds.filter((id) => !reactorNames.has(id));
-    if (missing.length > 0) {
-      const { data } = await supabase.from("person").select("id, full_name").in("id", missing);
-      setReactorNames((prev) => {
-        const next = new Map(prev);
-        for (const r of data ?? []) next.set(r.id, r.full_name);
-        return next;
-      });
-    }
   }
 
   if (!person || !studio) return null;
@@ -204,7 +201,6 @@ export function BulletinFeed({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {posts.map((post) => {
-            const mine = post.reactorIds.includes(person.id);
             return (
               <div
                 key={post.id}
@@ -237,44 +233,12 @@ export function BulletinFeed({
                   {post.media.map((m) => (
                     <BulletinMediaTile key={m.id} media={m} />
                   ))}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 13, paddingTop: 12, borderTop: "1px solid var(--hairline)" }}>
-                    <button
-                      type="button"
-                      onClick={() => toggleReaction(post)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "6px 12px",
-                        borderRadius: 999,
-                        background: mine ? "var(--band)" : "var(--sand)",
-                        color: mine ? "var(--signal)" : "var(--ink-2)",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      👍 {post.reactorIds.length}
-                    </button>
-                    {post.reactorIds.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => showReactors(post)}
-                        style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
-                      >
-                        {expandedReactors === post.id ? "Hide" : `${post.reactorIds.length} reacted`} →
-                      </button>
-                    )}
+                  <div style={{ marginTop: 13, paddingTop: 12, borderTop: "1px solid var(--hairline)" }}>
+                    <ReactionBar reactions={post.reactions} onToggle={(emoji) => setReaction(post, emoji)} />
                   </div>
                   {audienceSize !== null && audienceSize > 0 && (
                     <div style={{ marginTop: 8, fontSize: 11, color: "var(--ink-3)" }}>
                       Seen by {post.seenCount} of {audienceSize}
-                    </div>
-                  )}
-                  {expandedReactors === post.id && (
-                    <div style={{ marginTop: 9, fontSize: 12, color: "var(--ink-2)" }}>
-                      {post.reactorIds.map((id) => reactorNames.get(id) ?? "…").join(", ")}
                     </div>
                   )}
                 </div>

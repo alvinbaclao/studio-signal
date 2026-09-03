@@ -9,10 +9,19 @@ export interface ReactionSummary {
   reactedByMe: boolean;
 }
 
-// A row of small tap targets (single emoji/ack) used on every Bulletin
-// post. Tapping the emoji toggles your own reaction; tapping the count
-// reveals who reacted, since reactions are per-person visible, not an
-// aggregate number.
+// Small, fixed reaction set (deficiency #29) — `reaction.kind` is free
+// text with no enum behind it, so this list is a UI choice, not a schema
+// constraint. `reaction`'s own primary key is (post_id, person_id), so a
+// person can only ever have one reaction per post — picking a new emoji
+// switches it (an upsert on that same row) rather than adding a second.
+const CANDIDATE_EMOJI = ["👍", "❤️", "🎉", "👏"];
+
+// A row of small tap targets used on every Bulletin post, plus a "+"
+// picker for choosing (or switching) your own reaction. Tapping an
+// existing chip you already reacted with removes it; tapping any other
+// emoji (an existing chip or one from the picker) sets/switches your
+// reaction to it. Tapping a chip's count reveals who reacted, since
+// reactions are per-person visible, not an aggregate number.
 export function ReactionBar({
   reactions,
   onToggle,
@@ -21,10 +30,17 @@ export function ReactionBar({
   onToggle?: (emoji: string) => void;
 }) {
   const [openEmoji, setOpenEmoji] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const myEmoji = reactions.find((r) => r.reactedByMe)?.emoji ?? null;
+
+  const pick = (emoji: string) => {
+    onToggle?.(emoji);
+    setPickerOpen(false);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {reactions.map((r) => (
           <div
             key={r.emoji}
@@ -73,7 +89,51 @@ export function ReactionBar({
             </button>
           </div>
         ))}
+        <button
+          type="button"
+          onClick={() => setPickerOpen((v) => !v)}
+          aria-label="Add a reaction"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 26,
+            height: 26,
+            borderRadius: "50%",
+            border: "1.5px dashed var(--hairline)",
+            background: "none",
+            color: "var(--ink-3)",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          +
+        </button>
       </div>
+
+      {pickerOpen && (
+        <div style={{ display: "flex", gap: 6 }}>
+          {CANDIDATE_EMOJI.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => pick(emoji)}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                border: "none",
+                background: emoji === myEmoji ? "var(--ink)" : "var(--sand)",
+                fontSize: 15,
+                cursor: "pointer",
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
 
       {openEmoji &&
         (() => {
