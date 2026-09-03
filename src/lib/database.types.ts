@@ -522,16 +522,19 @@ export type Database = {
       dance_style: {
         Row: {
           id: string
+          is_active: boolean
           name: string
           studio_id: string
         }
         Insert: {
           id?: string
+          is_active?: boolean
           name: string
           studio_id: string
         }
         Update: {
           id?: string
+          is_active?: boolean
           name?: string
           studio_id?: string
         }

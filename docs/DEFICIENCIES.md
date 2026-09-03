@@ -27,16 +27,6 @@ itself (creating storage policies is exactly the kind of RLS change
 CLAUDE.md's four rules forbid); likely needs to happen in the Supabase
 dashboard or via a migration-adjacent step outside this repo.
 
-### 3. No dance styles exist in the studio yet
-**Found in:** Task 4.
-`dance_style` is empty for this studio. Every style-picker built so far
-(CompleteProfile's dancer branch, the parent branch's add-dancer form)
-correctly shows an empty state ("Your studio hasn't added any dance styles
-yet") rather than a broken picker, but real studios can't tag dance styles
-on anyone until Task 26 (Studio Settings → Dance styles) is built and a
-Director populates the list. Not a bug — just a real sequencing
-dependency worth remembering when Task 26 is skipped or delayed.
-
 ### 4. Duplicate-person detection not implemented in the confirm queue
 **Found in:** Task 5.
 `DirectorConfirmQueue.dc.html` shows a "Might match Noah W. already on
@@ -91,17 +81,6 @@ Dancer meeting. A live probe of `event_owner_matches_type` confirmed
 with nothing real to attach to, "Call time" was left out entirely, same
 choice as every other schema-shaped gap in this project. Revisit once
 competition/competition_entry management exists (Task 22+).
-
-### 15. No `studio_space` rows exist yet
-**Found in:** Task 12.
-Same shape as Deficiency #3 (`dance_style`): `studio_space` is empty for
-the real studio, so Add Event's Location picker correctly shows "Your
-studio hasn't set up any spaces yet" and every event/booking request can
-be saved with no location rather than being forced through a fake picker.
-Studio Spaces management is Task 26 (Studio Settings) — not built yet.
-The advisory Available/Pending/Busy picker itself (`--ok`/`--wait`/
-`--busy`) was verified live with temporary test spaces and works
-correctly; it just has nothing to show until Task 26 seeds real ones.
 
 ### 16. Recurring events aren't supported on the Director's direct-create path
 **Found in:** Task 12.
@@ -624,3 +603,38 @@ though the RPC omitted it from its list). `TeamsAndDances` now queries
 chip — a destination the viewer has no real role on now renders no chip
 at all instead of guessing "Parent"/"Dancer," which also resolves the
 old Director-chip cosmetic gap this file used to track separately.
+
+### 3 & 15. No `dance_style`/`studio_space` rows existed yet, and no way to add them
+**Found in:** Tasks 4 and 12. **Found and fixed in:** Task 26.
+Both tables were empty for the real studio, so every style/space picker
+built earlier in this project (CompleteProfile's dancer branch, Add
+Event's Location picker) correctly showed an empty state rather than a
+broken picker — but nothing could populate either list until Studio
+Settings existed. Task 26 built the "Studio & dance styles" tab
+(`Settings.tsx`): Studio profile (name/timezone/address/phone/email,
+`logo_path` excluded per Deficiency #2), Studio Spaces, and Dance styles,
+each with add/rename/deactivate — all writing through the pre-existing
+`studio_write`/`space_write`/`style_write` RLS policies (Director-only via
+`app.is_director(studio_id)`), no new RPCs needed.
+
+One genuine schema gap surfaced while building this: `dance_style` had no
+`is_active` column at all (`studio_space` already did), even though
+BUILD_PLAN.md and the artboard both require "deactivate-only, never
+hard-deleted" for both tables — confirmed via FK introspection that
+`dance_style` is referenced by `person_dance_style`, `team`, and
+`comp_team`, so a hard delete would silently orphan history. Fixed with a
+one-column, additive migration
+(`supabase/migrations/20260903004656_add_dance_style_is_active.sql`):
+`alter table public.dance_style add column is_active boolean not null
+default true`. Drafted, shown, and confirmed with the user before
+pushing, per `CLAUDE.md`'s schema-change workflow. Verified live end-to-
+end (add/rename/deactivate/reactivate for both a space and a style, plus
+a studio-profile edit) via Playwright against the real dev server, then
+all test rows removed and the studio profile fields restored to their
+original `null`s, confirmed via a direct row-count query afterward.
+
+Reorder-by-drag from the artboard was deliberately dropped — `sort_order`
+exists on `studio_space` but BUILD_PLAN.md never asks for a reorder UI,
+and lists already read in a stable, sensible order (`sort_order`, then
+`name`). Not logged as an open gap since nothing describes it as
+required.
