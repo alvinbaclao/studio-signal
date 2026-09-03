@@ -272,20 +272,23 @@ export function HomeUnified() {
     };
   }, [person]);
 
-  // Inbox preview — message_thread has no write path yet (docs/DEFICIENCIES.md
-  // #1), so no thread can exist in real data yet; this query is real and
-  // forward-compatible, not faked.
+  // Inbox preview — mirrors MessagingInbox.tsx's own query
+  // (app.threads_i_can_see(), not a direct thread_participant lookup):
+  // thread_participant is only ever populated for direct-scope threads
+  // (team/comp_team/studio membership is computed dynamically), so
+  // querying it directly here missed every team/comp_team/studio thread a
+  // person could see. See docs/DEFICIENCIES.md #43.
   useEffect(() => {
     if (!person) return;
     let cancelled = false;
     async function load() {
-      const { data: participantRows } = await supabase.from("thread_participant").select("thread_id").eq("person_id", person!.id);
-      const threadIds = (participantRows ?? []).map((r) => r.thread_id);
-      if (threadIds.length === 0) {
+      const { data: threadIds } = await callApp<string[]>("threads_i_can_see");
+      const ids = threadIds ?? [];
+      if (ids.length === 0) {
         if (!cancelled) setInboxThreads([]);
         return;
       }
-      const { data: threadRows } = await supabase.from("message_thread").select("id, subject, scope").in("id", threadIds).limit(4);
+      const { data: threadRows } = await supabase.from("message_thread").select("id, subject, scope").in("id", ids).limit(4);
       if (!cancelled) setInboxThreads(threadRows ?? []);
     }
     load();

@@ -60,16 +60,6 @@ store it. If automated invite emails are ever added (a real mail
 provider, a Supabase Edge Function, etc.), the note field should be
 reconsidered alongside it.
 
-### 7. Parent-facing confirm/decline visibility not verified end-to-end
-**Found in:** Task 5.
-`BUILD_PLAN.md`'s own Verify step for Task 5 asks to "reload as the
-parent" and confirm a declined dancer stays invisible while a confirmed
-one appears. That wasn't fully testable yet — there's no parent-facing
-roster or dancer view built (Tasks 7/9/14/16 are what would show it) — so
-it was checked at the database layer instead (correct status transitions
-confirmed directly). Re-verify through the actual UI once a parent has
-somewhere to see their own family's status.
-
 ### 14. "Call time" isn't offered in Add Event's type picker
 **Found in:** Task 12.
 `EventTypePicker.dc.html` lists "Call time — for a competition or
@@ -137,32 +127,20 @@ their own declined request via existing RLS), just not the formal
 accept/counter loop the mockup depicts — that would need real schema
 support to build honestly.
 
-### 22. Unified Home's band, Highlights and Inbox are narrower than the artboard
-**Found in:** Task 14.
+### 22. Unified Home's band and Highlights are narrower than the artboard
+**Found in:** Task 14. **Narrowed in:** the deficiencies-backlog pass
+following Task 27 — Inbox is fixed (see #43, Resolved); this entry now
+covers what's left.
 `HomeUnified.dc.html`'s "Needs your attention" band mixes in "urgent
 messages" and general "schedule changes" alongside booking requests —
 only the booking-request half is real (there's no notification table for
-the other two, and Messaging isn't built — see #1, #17). "Recent
-highlights" and "Inbox" both query real tables (`media_item`,
-`thread_participant`/`message_thread`) and render honest empty states,
-but can't show real content until #2 (Storage bucket) and #1
-(`message_thread` write path) are resolved — same root gaps as before,
-just now visible on a second screen. "Next up" also doesn't surface
+the other two — see #17/#26). "Recent highlights" queries `media_item`
+live and renders an honest empty state, but can't show real content until
+#2 (Storage bucket) is resolved. "Next up" also doesn't surface
 competition/call-time cards the way the artboard's Regional Classic
-example does — there's no CompetitionOverview screen yet to link to
-(Task 22+).
-
-### 23. Bulletin/Media/Essentials tabs and composers are placeholders until Tasks 17–19
-**Found in:** Task 15.
-Every destination's Bulletin/Media/Essentials sub-nav tab, and the three
-"Instructor tools" buttons (Post to Bulletin, Add to Essentials, Upload
-Media), route to a real path today but land on a `<Placeholder>` — the
-composer screens (`BulletinComposer.dc.html`, `EssentialsComposer.dc.html`,
-`MediaUpload.dc.html`) and the feed/library/list screens themselves aren't
-built until Tasks 17, 18 and 19 respectively. The Home preview sections for
-each (most recent post, media gallery, essentials list) already query the
-real tables live and render correctly — they're just honestly empty right
-now, same shape as Deficiency #22 on the unified Home.
+example does — there's no CompetitionOverview screen yet to link to from
+here (the screen itself now exists, from Task 24 — this is specifically
+about `HomeUnified`'s own "Next up" card not linking to it).
 
 ### 26. Notification preferences are collected client-side only
 **Found in:** Task 16.
@@ -423,6 +401,46 @@ fix). If this should also be tightened, the same pattern applies: swap
 task) in each of these six policies.
 
 ## Resolved
+
+### 7. Parent-facing confirm/decline visibility, verified end-to-end
+**Found in:** Task 5. **Verified in:** Task 27's cross-account audit
+(closed in the deficiencies-backlog pass that followed).
+Waiting on Tasks 7/9/14/16 to give a parent somewhere to see their own
+family's status — all built now. Task 27's audit already exercised the
+exact scenario: the test parent's roster row (`person_read`'s RLS: a
+declined person is visible only to the Director, themselves, and their
+own linked family) showed real linked-dancer names ("Guardian of Emma
+Walsh, Cast Test Dancer Two") to the Director and to the parent's own
+view, while the Instructor's and Adult Dancer's views of that same row
+correctly fell back to "No dancers added yet" — confirming a declined
+dancer stays invisible to everyone who shouldn't see it and visible to
+who should, exactly BUILD_PLAN's Task 5 Verify step.
+
+### 23. Bulletin/Media/Essentials tabs and composers, verified real
+**Found in:** Task 15. **Verified in:** the deficiencies-backlog pass
+following Task 27.
+Written when Tasks 17–19 (the composer/feed/library screens) hadn't
+shipped yet — they have. Re-checked live: Jazz II's Bulletin, Media, and
+Essentials tabs all render real content (honest empty states with working
+composer entry points — "No posts yet.", "No photos, video, or music
+yet.", "Nothing posted yet." + "Add an item"), not `<Placeholder>` stubs.
+
+### 43. `HomeUnified`'s Inbox preview could never show Team/Comp Team/Studio threads
+**Found and fixed in:** the deficiencies-backlog pass following Task 27,
+while re-verifying Deficiency #22 now that #1 (messaging) is resolved.
+`HomeUnified.tsx`'s Inbox preview queried `thread_participant` directly
+to find the viewer's threads — but per #1's fix, `thread_participant` is
+only ever populated for `direct`-scope threads (team/comp_team/studio
+membership is computed dynamically via `team_member`/`comp_team_cast`/
+studio-wide confirmed status, never mirrored into that table). So this
+widget was structurally incapable of showing a Team, Comp Team, or Studio
+thread, regardless of real message content — the same bug class already
+caught and fixed in `MessagingThread.tsx`'s audience math during #1's
+fix, just missed in this second file. `MessagingInbox.tsx` already had
+the correct pattern (`callApp('threads_i_can_see')`); `HomeUnified.tsx`
+now uses the same call. Verified live: a confirmed instructor with real
+Jazz II/Comp Team/Studio threads went from "No conversations yet." to
+correctly listing all three.
 
 ### 1. `message_thread` has no write path from the client
 **Found in:** Task 9. **Found and fixed for real in:** the messaging
