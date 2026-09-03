@@ -257,28 +257,37 @@ environment). The empty-vs-offline distinction the code implements is
 correct in principle; the offline path itself hasn't been proven live the
 way everything else in this task was.
 
-### 41. Pending/declined people can browse catalog names (Team, Comp Team, Dance Style, Studio Space, Season, Studio) studio-wide
-**Found in:** Task 27's cross-account audit, while investigating the
-content-leak fix below (Resolved, this same task).
-`team_read`, `comp_team_read`, `style_read`, `space_read`, `season_read`,
-and `studio_read` all gate on `app.my_studio_ids()`, which filters only on
-`person.is_active` — not `status`. A person who redeemed a join code but
-is still `pending` (or even `declined`) can `SELECT` every Team/Comp
-Team's name and level/type, every Dance Style name, every Studio Space
-name, and the studio's own profile fields (name, address, phone, email,
-timezone), confirmed live via raw `supabase-js` queries as the deliberately-
-pending test account. Lower severity than the content leak fixed this same
-task — no message/post/essentials/media CONTENT is exposed this way, only
-catalog names/structure — and it may be a deliberate onboarding choice
-(so a not-yet-confirmed person can see roughly what they're joining).
-Deliberately left unfixed: scoped out of this task's fix by the user's own
-choice (only the four content-bearing tables — `post`, `message`/
-`message_thread`, `essentials_item`, `media_item` — were approved for a
-fix). If this should also be tightened, the same pattern applies: swap
-`app.my_studio_ids()` for `app.my_confirmed_studio_ids()` (added this
-task) in each of these six policies.
-
 ## Resolved
+
+### 41. Pending/declined people could browse catalog names (Team, Comp Team, Studio Space, Season, Studio) studio-wide
+**Found in:** Task 27's cross-account audit. **Fixed in:** the
+deficiencies-backlog pass following Task 27 (Group 4).
+`team_read`, `comp_team_read`, `space_read`, `season_read`, and
+`studio_read` all gated on `app.my_studio_ids()`, which filters only on
+`person.is_active`, not `status` — a pending or declined person could
+`SELECT` every Team/Comp Team's name, every Studio Space name, and the
+studio's own profile fields. Lower severity than the content leak fixed
+in #42 (only catalog names, no message/post/essentials/media content),
+but tightened now that the confirmed-only helper already exists.
+
+`dance_style` (`style_read`) was deliberately left untouched — checked
+real usage first rather than assuming, and found it's the one table of
+these six actually read by a client while still pending:
+`App.tsx`'s own gate shows `CompleteProfile` *before* checking
+`person.status === 'pending'`, and `CompleteProfile`'s dancer/style
+picker queries `dance_style` directly at that point. Tightening it would
+have broken real onboarding, not just closed a low-severity gap — grepped
+every other one of the six tables' usages first and confirmed none are
+touched by anything reachable before both `CompleteProfile` and
+confirmation are done.
+
+Verified live via raw `supabase-js` for a pending account, a confirmed
+account, and Director: the five tightened tables went from real row
+counts to zero for pending (with no change for confirmed/Director), while
+`dance_style` — checked against a real seeded row, not just an ambiguous
+empty result — stayed readable for all three.
+
+
 
 ### 2 & 28. No Supabase Storage bucket existed — profile photos, Media library, and Bulletin attachments were all placeholders
 **Found in:** Tasks 4, 17, 18. **Fixed in:** the deficiencies-backlog pass
