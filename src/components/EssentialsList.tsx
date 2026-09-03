@@ -20,11 +20,14 @@ type Scope = "studio" | "team" | "comp_team";
 // everyone but the Director, who sees them separately, marked archived —
 // never hard-deleted. See BUILD_PLAN.md Task 19.
 //
-// Reordering ("drag to reorder, same as the roster and Teams lists") isn't
-// built — no drag-and-drop exists anywhere else in this codebase to
-// reuse, and Task 19's own Verify step doesn't test it; sort_order is
-// real and respected (new items append to the end), just not
-// interactively editable yet. See docs/DEFICIENCIES.md.
+// Reordering (docs/DEFICIENCIES.md #31) uses native HTML5 drag-and-drop,
+// not a library — no drag-and-drop existed anywhere else in this codebase
+// to reuse, and these lists are short, Director-only admin actions (same
+// gate as Archive), not a core mobile flow, so the dependency wasn't
+// worth adding. Director-only, matching Archive's existing gate — an
+// instructor could technically update their own item's sort_order per
+// essentials_update's RLS, but reordering touches every item in the
+// list, most of which they didn't create.
 export function EssentialsList({
   scope,
   destinationId,
@@ -44,6 +47,8 @@ export function EssentialsList({
   const [archived, setArchived] = useState<EssentialRow[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!person) return;
@@ -85,6 +90,19 @@ export function EssentialsList({
     setReloadKey((k) => k + 1);
   }
 
+  async function reorder(draggedItemId: string, dropOnItemId: string) {
+    if (!items || draggedItemId === dropOnItemId) return;
+    const fromIndex = items.findIndex((i) => i.id === draggedItemId);
+    const toIndex = items.findIndex((i) => i.id === dropOnItemId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const next = [...items];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    setItems(next); // optimistic — reload() below re-fetches from the server regardless
+    await Promise.all(next.map((item, i) => supabase.from("essentials_item").update({ sort_order: i }).eq("id", item.id)));
+    setReloadKey((k) => k + 1);
+  }
+
   if (!person) return null;
 
   return (
@@ -103,6 +121,17 @@ export function EssentialsList({
               isDirector={isDirector}
               busy={busyId === item.id}
               onToggleArchive={() => toggleArchive(item)}
+              draggable={isDirector && items.length > 1}
+              isDragOver={dragOverId === item.id}
+              onDragStart={() => setDraggedId(item.id)}
+              onDragEnter={() => setDragOverId(item.id)}
+              onDragEnd={() => {
+                setDraggedId(null);
+                setDragOverId(null);
+              }}
+              onDrop={() => {
+                if (draggedId) reorder(draggedId, item.id);
+              }}
             />
           ))}
         </div>
@@ -153,12 +182,24 @@ function EssentialRowView({
   isDirector,
   busy,
   onToggleArchive,
+  draggable = false,
+  isDragOver = false,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDrop,
 }: {
   item: EssentialRow;
   first: boolean;
   isDirector: boolean;
   busy: boolean;
   onToggleArchive: () => void;
+  draggable?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragEnter?: () => void;
+  onDragEnd?: () => void;
+  onDrop?: () => void;
 }) {
   const content = (
     <>
@@ -181,7 +222,33 @@ function EssentialRowView({
   );
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "15px 0", borderTop: first ? "none" : "1px solid var(--hairline)" }}>
+    <div
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        onDragEnter?.();
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnd={onDragEnd}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop?.();
+      }}
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+        padding: "15px 0",
+        borderTop: first ? "none" : "1px solid var(--hairline)",
+        background: isDragOver ? "var(--sand)" : "transparent",
+      }}
+    >
+      {draggable && (
+        <span style={{ cursor: "grab", color: "var(--ink-3)", flexShrink: 0, marginTop: 12 }} title="Drag to reorder">
+          <GripIcon />
+        </span>
+      )}
       {item.link_url ? (
         <a href={item.link_url} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "flex-start", gap: 12, flex: 1, minWidth: 0, color: "inherit" }}>
           {content}
@@ -242,6 +309,19 @@ function ItemTypeIcon({ type }: { type: string }) {
     <svg style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round">
       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
       <path d="M14 2v6h6" />
+    </svg>
+  );
+}
+
+function GripIcon() {
+  return (
+    <svg style={{ width: 14, height: 14 }} viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="8" cy="6" r="1.6" />
+      <circle cx="16" cy="6" r="1.6" />
+      <circle cx="8" cy="12" r="1.6" />
+      <circle cx="16" cy="12" r="1.6" />
+      <circle cx="8" cy="18" r="1.6" />
+      <circle cx="16" cy="18" r="1.6" />
     </svg>
   );
 }

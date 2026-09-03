@@ -79,19 +79,6 @@ these values, and they don't sync across devices. Revisit if real
 notification delivery is ever added — these three toggles are exactly
 what a real preferences table would need to store per-person.
 
-### 31. No drag-to-reorder on Essentials lists
-**Found in:** Task 19.
-`StudioEssentials.dc.html`'s own copy says items can be "drag to reorder,
-same as the roster and Teams lists" — but no drag-and-drop exists
-anywhere else in this codebase to reuse (Roster and TeamsIndex don't have
-it either), and Task 19's own Verify step doesn't test reordering, only
-archive visibility. `sort_order` is real and respected — the list renders
-in that order, and new items append to the end (`max(sort_order) + 1` for
-that scope/destination) — there's just no interactive way to change it
-yet beyond editing the column directly. Revisit if manual reordering is
-ever needed; would need a drag library or custom pointer-event handling,
-neither of which exists in this codebase today.
-
 ### 33. No reachable UI for an instructor to propose a competition entry
 **Found in:** Task 22.
 `competition_entry.proposed_by`/`accepted_at` are real columns and
@@ -207,6 +194,30 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 31. Essentials lists now support drag-to-reorder
+**Found in:** Task 19. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+Built with native HTML5 drag-and-drop (`draggable`, `dragstart`/
+`dragenter`/`dragover`/`drop`/`dragend`), not a library — no drag-and-drop
+existed anywhere else in this codebase to reuse, and these lists are
+short, Director-only admin actions (same gate as Archive — an instructor
+could technically update their own item's `sort_order` per
+`essentials_update`'s RLS, but reordering touches every item in the list,
+most of which they didn't create), not a core mobile flow, so a new
+dependency wasn't worth adding. On drop, every item's `sort_order` is
+rewritten to its new index and the list reloads from the server. Verified
+live: two real items, dragged the second onto the first, confirmed both
+the rendered order and the real `sort_order` values in the database
+flipped. One thing worth noting for later testing: Playwright's own
+mouse-based `dragTo()` doesn't fire real HTML5 drag events at all (a
+known tooling gap, not a hint about the app), and firing synthetic
+`DragEvent`s back-to-back with no delay between them undercounts real
+browser timing enough that React's state batching can miss the drop —
+both looked like "reorder does nothing" until real delays were added
+between each dispatched event, at which point it worked correctly.
+
+
 
 ### 10. Global Schedule now shows a per-event role indicator dot
 **Found in:** Task 11. **Fixed in:** the deficiencies-backlog pass
