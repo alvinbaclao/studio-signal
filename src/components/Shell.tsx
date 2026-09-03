@@ -15,9 +15,16 @@ import {
   SettingsIcon,
 } from "./icons";
 
+// "Competitions" added per docs/DEFICIENCIES.md #33 — previously the only
+// way to reach /teams-and-dances was a direct URL; no nav item linked
+// there for anyone but a Director (whose own directorRailItems already
+// has an equivalent "Competitions" entry pointing at /teams). Needed so a
+// choreographing instructor can reach their own Comp Team to propose
+// entering a competition (CompTeamHome.tsx).
 const primaryNavItems = [
   { to: "/", label: "Home", Icon: HomeIcon, end: true },
   { to: "/schedule", label: "Schedule", Icon: ScheduleIcon, end: false },
+  { to: "/teams-and-dances", label: "Competitions", Icon: CompetitionsIcon, end: false },
   { to: "/messages", label: "Messaging", Icon: MessagingIcon, end: false },
   { to: "/profile", label: "Profile", Icon: ProfileIcon, end: false },
 ] as const;

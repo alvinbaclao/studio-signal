@@ -4,6 +4,7 @@ import { supabase, callApp } from "../lib/supabase";
 import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { formatTimeInZone } from "../lib/format";
+import { Sheet } from "../components/Sheet";
 import { DestinationHeader } from "../components/DestinationHeader";
 import { DestinationSubNav } from "../components/DestinationSubNav";
 import { ToolsRow } from "../components/ToolsRow";
@@ -63,6 +64,11 @@ export function CompTeamHome() {
   const [post, setPost] = useState<PostPreview | null | undefined>(undefined);
   const [media, setMedia] = useState<MediaPreviewItem[] | null>(null);
   const [competingAt, setCompetingAt] = useState<CompetingAt | null | undefined>(undefined);
+  const [pendingProposal, setPendingProposal] = useState<{ competitionName: string } | null | undefined>(undefined);
+  const [proposeSheetOpen, setProposeSheetOpen] = useState(false);
+  const [availableCompetitions, setAvailableCompetitions] = useState<{ id: string; name: string }[] | null>(null);
+  const [proposing, setProposing] = useState(false);
+  const [proposeError, setProposeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!compTeamId || !person) return;
@@ -129,6 +135,22 @@ export function CompTeamHome() {
           : null
       );
 
+      // A choreographer's own proposed-but-not-yet-accepted entry
+      // (docs/DEFICIENCIES.md #33) — separate from competingAt above,
+      // which only ever reflects an accepted one.
+      const { data: pendingRow } = await supabase
+        .from("competition_entry")
+        .select("competition:competition_id(name)")
+        .eq("comp_team_id", compTeamId!)
+        .is("accepted_at", null)
+        .not("proposed_by", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      const pendingCompetition = pendingRow?.competition as unknown as { name: string } | null;
+      setPendingProposal(pendingCompetition ? { competitionName: pendingCompetition.name } : null);
+
       const { data: postRow } = await supabase
         .from("post")
         .select("id, body, important, created_at, author:author_id(full_name)")
@@ -153,9 +175,43 @@ export function CompTeamHome() {
     };
   }, [compTeamId, person]);
 
+  async function openProposeSheet() {
+    setProposeError(null);
+    setProposeSheetOpen(true);
+    // Published competitions this comp_team isn't already entered (accepted
+    // or pending) in — competition_read's own RLS already limits this to
+    // published ones for a non-Director, so no extra filter needed here.
+    const { data: existingRows } = await supabase.from("competition_entry").select("competition_id").eq("comp_team_id", compTeamId!);
+    const excludeIds = (existingRows ?? []).map((r) => r.competition_id);
+    let q = supabase.from("competition").select("id, name").order("starts_on");
+    if (excludeIds.length > 0) q = q.not("id", "in", `(${excludeIds.join(",")})`);
+    const { data } = await q;
+    setAvailableCompetitions(data ?? []);
+  }
+
+  async function submitProposal(competitionId: string) {
+    if (!person || !compTeamId) return;
+    setProposing(true);
+    setProposeError(null);
+    const { error } = await supabase.from("competition_entry").insert({
+      studio_id: person.studio_id,
+      competition_id: competitionId,
+      comp_team_id: compTeamId,
+      proposed_by: person.id,
+    });
+    setProposing(false);
+    if (error) {
+      setProposeError("Something went wrong sending that proposal — try again.");
+      return;
+    }
+    setProposeSheetOpen(false);
+    setPendingProposal({ competitionName: availableCompetitions?.find((c) => c.id === competitionId)?.name ?? "that competition" });
+  }
+
   if (!person || !studio || !compTeam || !compTeamId) return null;
 
   const canUseTools = isDirector || choreographs;
+  const canPropose = choreographs && !isDirector && competingAt === null && pendingProposal === null;
   const base = `/comp-team/${compTeamId}`;
 
   return (
@@ -210,6 +266,41 @@ export function CompTeamHome() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {pendingProposal && (
+          <div className="card" style={{ padding: "14px 16px", border: "1px solid var(--hairline)", borderRadius: 16, background: "var(--sand)" }}>
+            <Eyebrow>Proposal pending</Eyebrow>
+            <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 8 }}>
+              Waiting on the Director to accept or decline entering {pendingProposal.competitionName}.
+            </p>
+          </div>
+        )}
+
+        {canPropose && (
+          <div>
+            <button
+              type="button"
+              onClick={openProposeSheet}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 9,
+                padding: "13px 16px",
+                borderRadius: 12,
+                border: "1.5px dashed var(--hairline)",
+                color: "var(--ink-2)",
+                fontSize: 13,
+                fontWeight: 600,
+                background: "none",
+                cursor: "pointer",
+              }}
+            >
+              + Propose entering a competition
+            </button>
           </div>
         )}
 
@@ -301,6 +392,34 @@ export function CompTeamHome() {
           Message the cast
         </Link>
       </div>
+
+      <Sheet
+        open={proposeSheetOpen}
+        onClose={() => setProposeSheetOpen(false)}
+        title="Propose entering a competition"
+        subtitle="Sent to the Director to accept or decline — nothing books until they confirm it."
+      >
+        {availableCompetitions === null ? (
+          <p style={{ fontSize: 13, color: "var(--ink-2)", padding: "8px 0" }}>Loading…</p>
+        ) : availableCompetitions.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-2)", padding: "8px 0" }}>
+            No published competitions to propose right now — check back once your studio's Director publishes one.
+          </p>
+        ) : (
+          availableCompetitions.map((c, i) => (
+            <div
+              key={c.id}
+              role="button"
+              onClick={() => !proposing && submitProposal(c.id)}
+              className="hairline"
+              style={{ padding: "13px 0", borderTop: i === 0 ? "none" : "1px solid var(--hairline)", cursor: proposing ? "default" : "pointer", fontSize: 13.5, fontWeight: 700, opacity: proposing ? 0.6 : 1 }}
+            >
+              {c.name}
+            </div>
+          ))
+        )}
+        {proposeError && <p style={{ fontSize: 12.5, color: "var(--busy)", marginTop: 10 }}>{proposeError}</p>}
+      </Sheet>
     </div>
   );
 }

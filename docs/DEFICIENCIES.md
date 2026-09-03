@@ -53,23 +53,6 @@ these values, and they don't sync across devices. Revisit if real
 notification delivery is ever added — these three toggles are exactly
 what a real preferences table would need to store per-person.
 
-### 33. No reachable UI for an instructor to propose a competition entry
-**Found in:** Task 22.
-`competition_entry.proposed_by`/`accepted_at` are real columns and
-BUILD_PLAN's own text calls for them ("Instructor proposals... live here
-too, Director accepts/declines"). `CompetitionWizard`'s Entries step
-handles the Director-facing half correctly — a pending proposal renders
-with Accept/Decline instead of a plain checkbox, verified live by seeding
-a test row directly and confirming both actions work (Accept sets
-`accepted_at`; Decline deletes the row). But there's no screen anywhere
-in this build where a confirmed instructor could actually create one —
-`/teams` (Teams & Competitions, where competitions live) has no nav path
-for non-Directors at all (`Shell.tsx`'s `primaryNavItems` doesn't include
-it), so the "propose" half of this feature has no entry point yet, same
-shape as Deficiency #20's "no entry point for Request a move." Revisit
-once there's a real screen for an instructor to reach a Comp Team they
-choreograph and propose entering it somewhere.
-
 ### 36. CompetitionOverview drops the "Updates" feed and event-scoped Media
 **Found in:** Task 24.
 `CompetitionOverview.dc.html` shows two sections with no real schema
@@ -168,6 +151,43 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 33. Instructors can now propose a competition entry — the whole loop is reachable for the first time
+**Found in:** Task 22. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+`CompetitionWizard`'s Entries step already handled the Director-facing
+half correctly (a pending proposal renders with Accept/Decline instead of
+a plain checkbox) — verified back in Task 22, but only by seeding a test
+row directly, since nothing could create one for real. Two gaps closed
+together: `Shell.tsx`'s `primaryNavItems` (everyone but a Director) had
+no "Competitions" item at all — added one, pointing at the existing
+`/teams-and-dances` screen (a Director already has an equivalent entry on
+their own rail, pointing at `/teams`). `CompTeamHome.tsx` gained a real
+"Propose entering a competition" action, shown only to that comp_team's
+choreographer (not a Director, who already has `CompetitionWizard` for
+this) when they're not already competing and have no pending proposal —
+opens a sheet of published competitions the comp_team isn't already
+entered in (`competition_read`'s own RLS already limits a non-Director to
+published ones, so no extra filter needed), inserts a real
+`competition_entry` with `proposed_by` set, `accepted_at` left null,
+matching `entry_insert`'s real RLS exactly (checked via `pg_policies`
+first). A "Proposal pending — waiting on the Director" banner replaces
+the button once one exists, reusing the shared `Sheet` component
+(`AddEvent.tsx`'s picker sheets) rather than a new one-off modal.
+
+Verified live end-to-end, the whole chain in one pass: confirmed the nav
+item appears for a non-Director; browsed `/teams-and-dances` to the real
+Comp Team; proposed a real, published test competition; confirmed the
+resulting `competition_entry` row matched exactly (`proposed_by` the
+instructor's own id, `accepted_at` null); confirmed the pending-banner
+replaced the button; then — the actual payoff — loaded the Director's
+already-built `CompetitionWizard` Entries step and confirmed the real
+proposal rendered there with "Proposed by Cast Test Choreographer" and
+working Accept/Decline, the first time that screen has ever shown a
+proposal that didn't come from directly seeding the database. All test
+data removed afterward.
+
+
 
 ### 20. "Request a move" now has a real entry point — a new EventDetail screen
 **Found in:** Task 13. **Fixed in:** the deficiencies-backlog pass
