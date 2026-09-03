@@ -53,22 +53,6 @@ these values, and they don't sync across devices. Revisit if real
 notification delivery is ever added — these three toggles are exactly
 what a real preferences table would need to store per-person.
 
-### 36. CompetitionOverview drops the "Updates" feed and event-scoped Media
-**Found in:** Task 24.
-`CompetitionOverview.dc.html` shows two sections with no real schema
-behind them: a read-only "Updates" feed of posts scoped to the
-competition itself, and a "Photos, video & documents" gallery, also
-competition-scoped. Checked directly against the live schema: `post` has
-no `competition_id` column at all (only `team_id`/`comp_team_id`), and
-neither does `media_item` — plus no Storage bucket exists for this
-studio anyway (Deficiency #2). Both sections are dropped entirely rather
-than faked, same as every other schema-shaped gap in this build.
-Consequence: BUILD_PLAN's "Add/Upload controls for Director/entered-
-Comp-Team's-choreographer" have nothing left to add or upload to, so the
-page is read-only for everyone — no role-gating needed. Revisit only if
-`post`/`media_item` ever gain a real competition scope (a schema change,
-so out of this codebase's own reach regardless).
-
 ## Low priority / cosmetic
 
 ### 24. Comp Team Home has no "Level" in its subtitle
@@ -151,6 +135,42 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 36. CompetitionOverview now has a real "Updates" feed and event-scoped Media
+**Found in:** Task 24. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+`post` and `media_item` both gained a nullable `competition_id` column
+(migration `20260903161342_add_competition_scoped_posts_and_media.sql`) —
+not a new `content_scope` enum value (would need `ALTER TYPE ... ADD
+VALUE` used in the same transaction that adds it, an unsafe pattern in
+Postgres), but an orthogonal destination FK following `media_item`'s own
+existing pattern. A competition Update is stored as `scope='studio'` with
+`competition_id` set (the `post_scope_matches_owner` CHECK now enforces
+that pairing); visible studio-wide via a new `post_read`/`media_read`
+branch (`competition_id is not null and studio_id in
+my_confirmed_studio_ids()`), matching how any other `scope='studio'` post
+is already visible. Postable by the Director or by the choreographer of a
+comp_team with an *accepted* entry in that competition — a new
+`post_insert`/`media_insert` branch checking `competition_entry` directly
+(`comp_team_id in comp_teams_i_choreograph() and accepted_at is not
+null`), fulfilling BUILD_PLAN's original "Add/Upload controls for
+Director/entered-Comp-Team's-choreographer" line for the first time.
+`CompetitionOverview.tsx` rebuilds both sections for real: Updates shows
+author name + "Director"/"Choreographer" role label (the label is safe to
+assume from RLS alone — anyone who could author a competition post that
+isn't the Director is necessarily a choreographer, by construction) and a
+plain post composer for anyone with posting authority; Media shows a
+horizontal strip of signed-URL photo thumbnails (or a doc/file icon for
+non-photo kinds) with a same-page upload control, reusing `src/lib/
+storage.ts`'s `uploadToStorage`/`studioMediaPath`/`useSignedUrl`.
+
+Verified live as three roles at once against a real seeded competition +
+accepted entry: the entered comp_team's choreographer posted a real
+Update and uploaded a real photo, both appeared correctly labeled; an
+unaffiliated confirmed parent (no relation to that comp_team) could see
+both but had no Post/Upload controls rendered; the Director saw
+everything. All test rows (`post`, `media_item`, `competition_entry`,
+`competition`) and the uploaded Storage object removed afterward.
 
 ### 33. Instructors can now propose a competition entry — the whole loop is reachable for the first time
 **Found in:** Task 22. **Fixed in:** the deficiencies-backlog pass

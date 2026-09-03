@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
-import { useAuth } from "../lib/AuthProvider";
+import { supabase, callApp } from "../lib/supabase";
+import { useAuth, hasRole } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
 import { formatTimeInZone } from "../lib/format";
 import { Avatar } from "../components/Avatar";
+import { mediaKindFromMime, studioMediaPath, uploadToStorage, useSignedUrl } from "../lib/storage";
 import type { Database } from "../lib/database.types";
 
 type CompTeamType = Database["public"]["Enums"]["comp_team_type"];
+type MediaKind = Database["public"]["Enums"]["media_kind"];
 
 const TYPE_LABEL: Record<CompTeamType, string> = {
   solo: "Solo",
@@ -35,18 +37,35 @@ interface EntryRow {
   call_time: string | null;
 }
 
+interface UpdateRow {
+  id: string;
+  body: string;
+  authorId: string;
+  authorName: string;
+  roleLabel: "Director" | "Choreographer";
+  createdAt: string;
+}
+
+interface MediaRow {
+  id: string;
+  kind: MediaKind;
+  fileName: string | null;
+  storagePath: string;
+  caption: string | null;
+}
+
 // Ports design-reference/CompetitionOverview.dc.html — a competition's own
 // summary page, one scrolling page, no sub-nav. See BUILD_PLAN.md Task 24.
 //
-// Two of the artboard's sections have no real schema behind them and are
-// dropped rather than faked: `post` has no competition_id at all (only
-// team_id/comp_team_id — a competition-scoped "Updates" feed can't exist),
-// and `media_item` likewise has no competition_id, on top of no Storage
-// bucket existing for this studio anyway (Deficiency #2). Since both
-// target sections are gone, so are the "Add/Upload controls for Director/
-// entered-Comp-Team's-choreographer" BUILD_PLAN mentions — there's
-// nothing left to add or upload to. The page is read-only for everyone;
-// see docs/DEFICIENCIES.md for the full account.
+// Deficiency #36: the artboard's "Updates" feed and "Photos, video &
+// documents" gallery originally had no schema behind them (post/media_item
+// had no way to scope to a competition) and were dropped. Both now exist
+// for real, backed by a nullable competition_id on post/media_item
+// (migration 20260903161342) rather than a new content_scope enum value —
+// a competition Update is stored as scope='studio' with competition_id
+// set, visible studio-wide same as any other studio post, postable by the
+// Director or the choreographer of a comp_team with an accepted entry
+// here (per post_insert's RLS, checked live before writing this).
 //
 // `competition_read`'s own RLS already hides an unpublished competition
 // from everyone but its Director (confirmed live via pg_policies before
@@ -55,9 +74,18 @@ export function CompetitionOverview() {
   const { id: competitionId } = useParams<{ id: string }>();
   const { person } = useAuth();
   const studio = useStudio();
+  const isDirector = hasRole(person, "director");
 
   const [competition, setCompetition] = useState<CompetitionInfo | null | undefined>(undefined);
   const [entries, setEntries] = useState<EntryRow[] | null>(null);
+  const [updates, setUpdates] = useState<UpdateRow[] | null>(null);
+  const [mediaItems, setMediaItems] = useState<MediaRow[] | null>(null);
+  const [canPost, setCanPost] = useState(false);
+  const [updateBody, setUpdateBody] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!competitionId || !person) return;
@@ -87,21 +115,111 @@ export function CompetitionOverview() {
         .eq("competition_id", competitionId!)
         .not("accepted_at", "is", null);
       if (cancelled) return;
-      setEntries(
-        (entryRows ?? [])
-          .map((e) => {
-            const ct = e.comp_team as unknown as { name: string; comp_team_type: CompTeamType } | null;
-            return ct ? { comp_team_id: e.comp_team_id, call_time: e.call_time, name: ct.name, comp_team_type: ct.comp_team_type } : null;
-          })
-          .filter((e): e is EntryRow => !!e)
-          .sort((a, b) => a.name.localeCompare(b.name))
+      const acceptedEntries = (entryRows ?? [])
+        .map((e) => {
+          const ct = e.comp_team as unknown as { name: string; comp_team_type: CompTeamType } | null;
+          return ct ? { comp_team_id: e.comp_team_id, call_time: e.call_time, name: ct.name, comp_team_type: ct.comp_team_type } : null;
+        })
+        .filter((e): e is EntryRow => !!e)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setEntries(acceptedEntries);
+
+      const { data: choreoIds } = await callApp<string[]>("comp_teams_i_choreograph");
+      if (cancelled) return;
+      const enteredCompTeamIds = new Set(acceptedEntries.map((e) => e.comp_team_id));
+      setCanPost(isDirector || (choreoIds ?? []).some((id) => enteredCompTeamIds.has(id)));
+
+      const { data: postRows } = await supabase
+        .from("post")
+        .select("id, body, author_id, created_at, author:author_id(full_name)")
+        .eq("competition_id", competitionId!)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      const authorIds = [...new Set((postRows ?? []).map((p) => p.author_id))];
+      const { data: directorRows } = authorIds.length
+        ? await supabase.from("person_role_assignment").select("person_id").eq("role", "director").in("person_id", authorIds)
+        : { data: [] as { person_id: string }[] };
+      if (cancelled) return;
+      const directorIds = new Set((directorRows ?? []).map((r) => r.person_id));
+      setUpdates(
+        (postRows ?? []).map((p) => ({
+          id: p.id,
+          body: p.body,
+          authorId: p.author_id,
+          authorName: (p.author as unknown as { full_name: string } | null)?.full_name ?? "Someone",
+          roleLabel: directorIds.has(p.author_id) ? "Director" : "Choreographer",
+          createdAt: p.created_at,
+        }))
+      );
+
+      const { data: mediaRows } = await supabase
+        .from("media_item")
+        .select("id, kind, file_name, storage_path, caption")
+        .eq("competition_id", competitionId!)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (cancelled) return;
+      setMediaItems(
+        (mediaRows ?? []).map((m) => ({ id: m.id, kind: m.kind, fileName: m.file_name, storagePath: m.storage_path, caption: m.caption }))
       );
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [competitionId, person]);
+  }, [competitionId, person, isDirector, reloadKey]);
+
+  async function postUpdate() {
+    if (!person || !updateBody.trim() || posting) return;
+    setPosting(true);
+    const { data: season } = await supabase.from("season").select("id").eq("studio_id", person.studio_id).eq("is_current", true).single();
+    const { error } = await supabase.from("post").insert({
+      studio_id: person.studio_id,
+      season_id: season!.id,
+      scope: "studio",
+      competition_id: competitionId!,
+      author_id: person.id,
+      body: updateBody.trim(),
+    });
+    setPosting(false);
+    if (!error) {
+      setUpdateBody("");
+      setReloadKey((k) => k + 1);
+    }
+  }
+
+  async function uploadMedia(files: FileList | null) {
+    if (!person || !files || files.length === 0) return;
+    setUploading(true);
+    setMediaError(null);
+    for (const file of Array.from(files).slice(0, 10)) {
+      const path = studioMediaPath(person.studio_id, "media", null, file);
+      const { error: uploadErr } = await uploadToStorage(path, file);
+      if (uploadErr) {
+        setMediaError(`Something went wrong uploading "${file.name}" — try again.`);
+        setUploading(false);
+        return;
+      }
+      const { error: insertErr } = await supabase.from("media_item").insert({
+        studio_id: person.studio_id,
+        competition_id: competitionId!,
+        kind: mediaKindFromMime(file.type),
+        processing_status: "ready",
+        storage_path: path,
+        file_name: file.name,
+        byte_size: file.size,
+        uploaded_by: person.id,
+      });
+      if (insertErr) {
+        setMediaError(`"${file.name}" uploaded, but saving it failed — try again.`);
+        setUploading(false);
+        return;
+      }
+    }
+    setUploading(false);
+    setReloadKey((k) => k + 1);
+  }
 
   if (!person) return null;
   if (competition === undefined) return null;
@@ -198,6 +316,86 @@ export function CompetitionOverview() {
           </p>
         </div>
 
+        <div style={{ marginTop: 24 }}>
+          <Eyebrow>Updates</Eyebrow>
+          <div className="card" style={{ marginTop: 10, border: "1px solid var(--hairline)", borderRadius: 16, padding: "2px 16px" }}>
+            {updates === null ? (
+              <p style={{ padding: "13px 0", color: "var(--ink-2)", fontSize: 13 }}>Loading…</p>
+            ) : updates.length === 0 ? (
+              <p style={{ padding: "13px 0", color: "var(--ink-2)", fontSize: 13 }}>No updates yet.</p>
+            ) : (
+              updates.map((u, i) => (
+                <div key={u.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : "1px solid var(--sand)" }}>
+                  <Avatar name={u.authorName} size={32} tone="band" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700 }}>
+                      {u.authorName} <span style={{ fontWeight: 600, color: "var(--ink-3)" }}>· {u.roleLabel}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 2, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{u.body}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--ink-3)", marginTop: 4 }}>{timeAgo(u.createdAt)}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          {canPost && (
+            <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+              <input
+                type="text"
+                value={updateBody}
+                onChange={(e) => setUpdateBody(e.target.value)}
+                placeholder="Post an update everyone competing here can see…"
+                style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--hairline)", fontSize: 13, fontFamily: "inherit" }}
+              />
+              <button
+                type="button"
+                onClick={postUpdate}
+                disabled={!updateBody.trim() || posting}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "var(--signal)",
+                  color: "var(--signal-ink)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  opacity: !updateBody.trim() || posting ? 0.6 : 1,
+                  cursor: !updateBody.trim() || posting ? "default" : "pointer",
+                }}
+              >
+                {posting ? "Posting…" : "Post"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+            <Eyebrow>Photos, video &amp; documents</Eyebrow>
+            {canPost && (
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--signal-deep)", cursor: uploading ? "default" : "pointer" }}>
+                <input type="file" accept="image/*,video/*,audio/*,application/pdf" multiple onChange={(e) => uploadMedia(e.target.files)} style={{ display: "none" }} disabled={uploading} />
+                {uploading ? "Uploading…" : "+ Upload"}
+              </label>
+            )}
+          </div>
+          {mediaError && <div style={{ marginTop: 8, fontSize: 12, color: "var(--busy)" }}>{mediaError}</div>}
+          {mediaItems === null ? (
+            <p style={{ marginTop: 11, color: "var(--ink-2)", fontSize: 13 }}>Loading…</p>
+          ) : mediaItems.length === 0 ? (
+            <p style={{ marginTop: 11, color: "var(--ink-3)", fontSize: 12.5 }}>Nothing posted here yet.</p>
+          ) : (
+            <div style={{ display: "flex", gap: 12, marginTop: 11, overflowX: "auto", padding: "2px 2px 6px" }}>
+              {mediaItems.map((m) => (
+                <CompetitionMediaTile key={m.id} item={m} />
+              ))}
+            </div>
+          )}
+          <p style={{ fontSize: 10.5, color: "var(--ink-3)", marginTop: 2 }}>
+            Posted here by the Director or a choreographer, about the event itself — each Comp Team's own rehearsal footage and costume photos still live on its own Media tab.
+          </p>
+        </div>
+
         <p style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", lineHeight: 1.5, marginTop: 30 }}>
           Questions about a call time or rehearsal? Message the Comp Team directly — this page is for what's shared across everyone competing here.
         </p>
@@ -218,6 +416,64 @@ function ChevronIcon() {
   return (
     <svg style={{ width: 15, height: 15, color: "var(--ink-3)", flexShrink: 0 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
       <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function CompetitionMediaTile({ item }: { item: MediaRow }) {
+  const photoUrl = useSignedUrl(item.kind === "photo" ? item.storagePath : null);
+  return (
+    <div style={{ flex: "0 0 128px" }}>
+      <div
+        style={{
+          position: "relative",
+          height: 160,
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 4px 14px -6px rgba(44,32,12,.22)",
+          background: "var(--surface)",
+          border: "1px solid var(--hairline)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {photoUrl ? <img src={photoUrl} alt={item.caption ?? item.fileName ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <MediaKindIcon kind={item.kind} />}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {item.caption ?? item.fileName ?? "Untitled"}
+      </div>
+    </div>
+  );
+}
+
+function MediaKindIcon({ kind }: { kind: MediaKind }) {
+  if (kind === "photo" || kind === "video") {
+    return (
+      <svg style={{ width: 26, height: 26, color: "var(--ink-3)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <circle cx="9" cy="10" r="2" />
+        <path d="M21 16l-5-5-9 9" />
+      </svg>
+    );
+  }
+  return (
+    <svg style={{ width: 26, height: 26, color: "var(--ink-3)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <path d="M14 2v6h6" />
     </svg>
   );
 }

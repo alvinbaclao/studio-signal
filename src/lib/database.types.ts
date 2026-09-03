@@ -846,6 +846,7 @@ export type Database = {
           byte_size: number | null
           caption: string | null
           comp_team_id: string | null
+          competition_id: string | null
           created_at: string
           file_name: string | null
           id: string
@@ -860,6 +861,7 @@ export type Database = {
           byte_size?: number | null
           caption?: string | null
           comp_team_id?: string | null
+          competition_id?: string | null
           created_at?: string
           file_name?: string | null
           id?: string
@@ -874,6 +876,7 @@ export type Database = {
           byte_size?: number | null
           caption?: string | null
           comp_team_id?: string | null
+          competition_id?: string | null
           created_at?: string
           file_name?: string | null
           id?: string
@@ -890,6 +893,13 @@ export type Database = {
             columns: ["comp_team_id"]
             isOneToOne: false
             referencedRelation: "comp_team"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_item_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competition"
             referencedColumns: ["id"]
           },
           {
@@ -1280,6 +1290,7 @@ export type Database = {
           author_id: string
           body: string
           comp_team_id: string | null
+          competition_id: string | null
           created_at: string
           deleted_at: string | null
           edited_at: string | null
@@ -1294,6 +1305,7 @@ export type Database = {
           author_id: string
           body: string
           comp_team_id?: string | null
+          competition_id?: string | null
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
@@ -1308,6 +1320,7 @@ export type Database = {
           author_id?: string
           body?: string
           comp_team_id?: string | null
+          competition_id?: string | null
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
@@ -1338,6 +1351,13 @@ export type Database = {
             columns: ["comp_team_id"]
             isOneToOne: false
             referencedRelation: "comp_team"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competition"
             referencedColumns: ["id"]
           },
           {
