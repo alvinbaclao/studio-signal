@@ -37,18 +37,6 @@ every dancer row in the real `ConfirmQueue` gets the same Confirm/Decline
 treatment regardless of possible duplicates. Worth a real design decision
 before building, not a guess.
 
-### 5. `PersonDetail` still has no "Edit details" for a Director
-**Found in:** Task 5. **Narrowed in:** Task 16.
-`PersonDetail`'s action bar has Message and Deactivate/Reactivate, but no
-"Edit details" — the artboard shows one, but there's no edit form to link
-it to. Task 16 resolved the self-edit half of this: `DancerProfile` now
-lets a dancer's guardian directly edit date of birth and height (real
-`person` updates, verified live), and `ProfileAccount` covers a person's
-own account facts. What's still missing is Director-editing-someone-
-else's details after the fact (correcting a typo'd name, updating a
-phone number for a person who isn't their own dancer) — not covered by
-any task on the current plan.
-
 ### 6. Invite emails aren't sent automatically
 **Found in:** Task 6.
 `InviteSomeone` generates a raw invite link that the Director must copy
@@ -202,24 +190,6 @@ shape as Deficiency #20's "no entry point for Request a move." Revisit
 once there's a real screen for an instructor to reach a Comp Team they
 choreograph and propose entering it somewhere.
 
-### 35. Moving a conflicting event lands back on Call Times' Entries step, not where you left off
-**Found in:** Task 23.
-`CompetitionWizard`'s step is local React state, not reflected in the
-URL — `/competitions/new` and `/competition/:id/manage` both render the
-same component at whatever step its own `useState` starts at (2, for an
-existing competition). "Move that event" in the Call Times conflict panel
-navigates away to `/add-event?movesEvent=<id>` (a real route change), and
-`AddEvent`'s own submit calls `navigate(-1)` to return — which re-mounts
-`CompetitionWizard` fresh rather than restoring in-memory state, so the
-Director lands back on step 2 (Entries) instead of step 3 (Call Times)
-where they were. Confirmed live: the underlying move itself works
-correctly (verified the existing `event` row's `starts_at` actually
-changed, no duplicate created) — this is purely a "which step is showing"
-rough edge, not a data bug. Fix would mean syncing wizard step to the URL
-(e.g. `?step=3`) rather than plain component state; not done here since
-step state has worked file-locally throughout Tasks 22-23 and this is the
-first place it's visibly cost something.
-
 ### 36. CompetitionOverview drops the "Updates" feed and event-scoped Media
 **Found in:** Task 24.
 `CompetitionOverview.dc.html` shows two sections with no real schema
@@ -339,6 +309,47 @@ fix). If this should also be tightened, the same pattern applies: swap
 task) in each of these six policies.
 
 ## Resolved
+
+### 35. Moving a conflicting event lands back on Call Times' Entries step, not where you left off
+**Found in:** Task 23. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 2).
+`CompetitionWizard`'s step lived only in local React state, not the URL —
+"Move that event" round-trips through `/add-event` and back via
+`navigate(-1)`, which remounts the component fresh, always resetting to
+step 2. Fixed by syncing step to `?step=` — wrapped the state setter so
+every `setStep()` call also updates the URL (`replace: true`, no extra
+history entries), and the initial step now reads from the URL first,
+falling back to the old `routeId ? 2 : 1` default. One real bug caught
+while building this: the one call site that changes *both* the pathname
+(new competition → `/competition/:id/manage`) and the step in the same
+tick raced — `navigate()` and `setSearchParams()` (which the wrapped
+`setStep` calls) both act on location, and `setSearchParams` reads the
+*current*, pre-navigate location, so it won since it ran second, leaving
+the URL on `/competitions/new?step=2` instead of the new competition's
+own URL. Fixed by folding the step into that one `navigate()` call
+directly instead of composing two separate navigations. Verified live:
+created a real competition, advanced to step 3, navigated to `/add-event`
+and back (simulating the "Move that event" round trip) — landed back on
+step 3, not step 2.
+
+### 5. `PersonDetail` now has "Edit details" for a Director
+**Found in:** Task 5. **Narrowed in:** Task 16. **Fixed in:** the
+deficiencies-backlog pass following Task 27 (Group 2).
+Added a Director-only "Edit details" button to the action bar (hidden
+when viewing your own record — that already goes through
+`ProfileAccount`), toggling the existing Profile card into an edit form:
+full name, phone always; date of birth/height for a dancer; title/bio for
+an instructor — mirroring exactly which fields that card already displays
+per role. No RLS/schema change needed: `person_update`'s policy already
+granted a Director full write access to any person row in their studio
+(`app.is_director(studio_id)`, confirmed via `pg_policies` before
+building this), so this was a pure frontend addition reusing an existing,
+already-correct write policy. Verified live: renamed a test account,
+confirmed the change persisted and reverted it; confirmed the button is
+absent both for a Director viewing themselves and for a non-Director
+viewing someone else.
+
+
 
 ### 34. Competition dates rendered a day early (UTC-parse / local-render mismatch)
 **Found in:** Task 22. **Fixed in:** the deficiencies-backlog pass

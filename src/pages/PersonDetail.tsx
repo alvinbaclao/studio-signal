@@ -16,6 +16,15 @@ interface TeamRow {
   meta: string;
 }
 
+interface EditDraft {
+  full_name: string;
+  phone: string;
+  date_of_birth: string;
+  height_cm: string;
+  title: string;
+  bio: string;
+}
+
 interface PersonDetailData {
   person: PersonRow;
   roles: Role[];
@@ -131,11 +140,16 @@ export function PersonDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<EditDraft | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   if (!data) return null;
   const { person, roles } = data;
 
   const isMinorDancer = roles.includes("dancer") && !!data.guardian;
   const age = ageFromDob(person.date_of_birth);
+  const canEditDetails = hasRole(currentPerson, "director") && currentPerson?.id !== person.id;
 
   const toggleActive = async () => {
     const verb = person.is_active ? "Deactivate" : "Reactivate";
@@ -144,6 +158,43 @@ export function PersonDetail() {
     await supabase.from("person").update({ is_active: !person.is_active }).eq("id", person.id);
     await load();
     setBusy(false);
+  };
+
+  const startEdit = () => {
+    setDraft({
+      full_name: person.full_name,
+      phone: person.phone ?? "",
+      date_of_birth: person.date_of_birth ?? "",
+      height_cm: person.height_cm !== null ? String(person.height_cm) : "",
+      title: person.title ?? "",
+      bio: person.bio ?? "",
+    });
+    setSaveError(null);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!draft || !draft.full_name.trim()) return;
+    setBusy(true);
+    setSaveError(null);
+    const { error } = await supabase
+      .from("person")
+      .update({
+        full_name: draft.full_name.trim(),
+        phone: draft.phone.trim() || null,
+        date_of_birth: draft.date_of_birth || null,
+        height_cm: draft.height_cm ? Number(draft.height_cm) : null,
+        title: (draft.title || null) as Database["public"]["Enums"]["instructor_title"] | null,
+        bio: draft.bio.trim() || null,
+      })
+      .eq("id", person.id);
+    setBusy(false);
+    if (error) {
+      setSaveError("Something went wrong saving these details — try again.");
+      return;
+    }
+    setEditing(false);
+    await load();
   };
 
   const joinedViaText = data.invitedByName
@@ -185,7 +236,12 @@ export function PersonDetail() {
           <Link to="/messages" style={ghostBtnStyle}>
             Message
           </Link>
-          {hasRole(currentPerson, "director") && currentPerson?.id !== person.id && (
+          {canEditDetails && !editing && (
+            <button type="button" onClick={startEdit} style={ghostBtnStyle}>
+              Edit details
+            </button>
+          )}
+          {canEditDetails && (
             <button type="button" onClick={toggleActive} disabled={busy} style={dangerBtnStyle}>
               {person.is_active ? "Deactivate" : "Reactivate"}
             </button>
@@ -196,38 +252,75 @@ export function PersonDetail() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginTop: 24 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="card" style={cardStyle}>
-            <Eyebrow>Profile</Eyebrow>
-            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              {person.date_of_birth !== null || isMinorDancer || roles.includes("dancer") ? (
-                <>
-                  <KV label="Date of birth">
-                    {person.date_of_birth
-                      ? `${formatShortDate(person.date_of_birth)}${age !== null ? ` · ${age} yrs` : ""}`
-                      : "Not provided"}
-                  </KV>
-                  <KV label="Height">{person.height_cm ? `${person.height_cm} cm` : "Not provided"}</KV>
-                  {data.styleNames && (
-                    <div style={{ gridColumn: "1 / -1" }}>
-                      <KV label="Dance styles">{data.styleNames}</KV>
-                    </div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <Eyebrow>Profile</Eyebrow>
+              {editing && <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Editing</span>}
+            </div>
+            {editing && draft ? (
+              <>
+                <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <FieldInput label="Full name" value={draft.full_name} onChange={(v) => setDraft({ ...draft, full_name: v })} />
+                  </div>
+                  <FieldInput label="Phone" value={draft.phone} onChange={(v) => setDraft({ ...draft, phone: v })} />
+                  {(person.date_of_birth !== null || isMinorDancer || roles.includes("dancer")) && (
+                    <>
+                      <FieldInput label="Date of birth" type="date" value={draft.date_of_birth} onChange={(v) => setDraft({ ...draft, date_of_birth: v })} />
+                      <FieldInput label="Height (cm)" type="number" value={draft.height_cm} onChange={(v) => setDraft({ ...draft, height_cm: v })} />
+                    </>
                   )}
-                </>
-              ) : (
-                <>
                   {roles.includes("instructor") && (
                     <>
-                      <KV label="Title">{person.title ?? "Not set"}</KV>
+                      <FieldSelect label="Title" value={draft.title} onChange={(v) => setDraft({ ...draft, title: v })} />
                       <div style={{ gridColumn: "1 / -1" }}>
-                        <KV label="Bio">{person.bio || "Not set"}</KV>
+                        <FieldInput label="Bio" value={draft.bio} onChange={(v) => setDraft({ ...draft, bio: v })} />
                       </div>
                     </>
                   )}
-                  <KV label="Phone">{person.phone ?? "Not provided"}</KV>
-                </>
-              )}
-            </div>
+                </div>
+                {saveError && <p style={{ fontSize: 12.5, color: "var(--busy)", marginTop: 12 }}>{saveError}</p>}
+                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                  <button type="button" onClick={saveEdit} disabled={busy || !draft.full_name.trim()} style={primaryBtnStyle}>
+                    {busy ? "Saving…" : "Save"}
+                  </button>
+                  <button type="button" onClick={() => setEditing(false)} style={ghostBtnStyle}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {person.date_of_birth !== null || isMinorDancer || roles.includes("dancer") ? (
+                  <>
+                    <KV label="Date of birth">
+                      {person.date_of_birth
+                        ? `${formatShortDate(person.date_of_birth)}${age !== null ? ` · ${age} yrs` : ""}`
+                        : "Not provided"}
+                    </KV>
+                    <KV label="Height">{person.height_cm ? `${person.height_cm} cm` : "Not provided"}</KV>
+                    {data.styleNames && (
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <KV label="Dance styles">{data.styleNames}</KV>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {roles.includes("instructor") && (
+                      <>
+                        <KV label="Title">{person.title ?? "Not set"}</KV>
+                        <div style={{ gridColumn: "1 / -1" }}>
+                          <KV label="Bio">{person.bio || "Not set"}</KV>
+                        </div>
+                      </>
+                    )}
+                    <KV label="Phone">{person.phone ?? "Not provided"}</KV>
+                  </>
+                )}
+              </div>
+            )}
 
-            {isMinorDancer && (
+            {isMinorDancer && !editing && (
               <div
                 style={{
                   marginTop: 16,
@@ -362,6 +455,49 @@ function KV({ label, children }: { label: string; children: React.ReactNode }) {
   );
 }
 
+function FieldInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>{label}</div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ background: "var(--sand)", border: "none", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--ink)", fontFamily: "inherit", width: "100%" }}
+      />
+    </div>
+  );
+}
+
+function FieldSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--ink-3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>{label}</div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ background: "var(--sand)", border: "none", borderRadius: 10, padding: "9px 12px", fontSize: 13, color: "var(--ink)", fontFamily: "inherit", width: "100%" }}
+      >
+        <option value="">Not set</option>
+        <option value="lead">Lead</option>
+        <option value="assistant">Assistant</option>
+        <option value="choreographer">Choreographer</option>
+        <option value="guest">Guest</option>
+      </select>
+    </div>
+  );
+}
+
 function RowLink({ to, title, subtitle }: { to: string; title: string; subtitle: string }) {
   return (
     <Link
@@ -420,6 +556,21 @@ const ghostBtnStyle: React.CSSProperties = {
   fontSize: 12.5,
   fontWeight: 600,
   textDecoration: "none",
+  whiteSpace: "nowrap",
+};
+
+const primaryBtnStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "9px 16px",
+  borderRadius: 9,
+  background: "var(--signal)",
+  color: "var(--signal-ink)",
+  fontSize: 12.5,
+  fontWeight: 700,
+  border: "none",
+  cursor: "pointer",
   whiteSpace: "nowrap",
 };
 

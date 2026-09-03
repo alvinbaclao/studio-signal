@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, Link } from "react-router-dom";
 import { supabase, callApp } from "../lib/supabase";
 import { useAuth } from "../lib/AuthProvider";
 import { useStudio } from "../lib/useStudio";
@@ -80,8 +80,24 @@ export function CompetitionWizard() {
   const { person } = useAuth();
   const studio = useStudio();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [step, setStep] = useState<Step>(routeId ? 2 : 1);
+  // Step lives in the URL (?step=), not just component state — "Move that
+  // event" in the Call Times conflict panel navigates away to /add-event
+  // and back (navigate(-1)), which remounts this component fresh. Plain
+  // useState would always reset to step 2 on return, losing the Director's
+  // place on step 3. See docs/DEFICIENCIES.md #35.
+  const stepFromUrl = Number(searchParams.get("step"));
+  const initialStep: Step = stepFromUrl >= 1 && stepFromUrl <= 4 ? (stepFromUrl as Step) : routeId ? 2 : 1;
+  const [step, setStepState] = useState<Step>(initialStep);
+  function setStep(s: Step) {
+    setStepState(s);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("step", String(s));
+      return next;
+    }, { replace: true });
+  }
   const [competitionId, setCompetitionId] = useState<string | null>(routeId ?? null);
   const [loadingExisting, setLoadingExisting] = useState(!!routeId);
 
@@ -223,8 +239,14 @@ export function CompetitionWizard() {
         return;
       }
       setCompetitionId(data.id);
-      navigate(`/competition/${data.id}/manage`, { replace: true });
-      setStep(2);
+      // Not setStep(2) here: navigate() and setSearchParams() (which
+      // setStep calls) both act on location in the same tick, and
+      // setSearchParams reads the *current* (pre-navigate) location —
+      // it would win and clobber the pathname change, leaving the URL on
+      // /competitions/new?step=2 instead of the new /competition/:id/manage.
+      // One navigate() carrying both the new path and the step avoids that.
+      navigate(`/competition/${data.id}/manage?step=2`, { replace: true });
+      setStepState(2);
     }
   }
 
