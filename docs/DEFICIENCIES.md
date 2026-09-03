@@ -19,18 +19,6 @@ store it. If automated invite emails are ever added (a real mail
 provider, a Supabase Edge Function, etc.), the note field should be
 reconsidered alongside it.
 
-### 14. "Call time" isn't offered in Add Event's type picker
-**Found in:** Task 12.
-`EventTypePicker.dc.html` lists "Call time — for a competition or
-performance entry" alongside Class/Rehearsal, Studio time request and
-Dancer meeting. A live probe of `event_owner_matches_type` confirmed
-`call_time` events require `competition_entry_id` to be set, not just
-`comp_team_id` — and Task 12's own `Touches` list doesn't include
-`competition`/`competition_entry` at all. Rather than half-wire a picker
-with nothing real to attach to, "Call time" was left out entirely, same
-choice as every other schema-shaped gap in this project. Revisit once
-competition/competition_entry management exists (Task 22+).
-
 ### 17. Add Event's "Notify" toggle is cosmetic only
 **Found in:** Task 12.
 `AddEvent.dc.html`'s "Push to {team} families" toggle has no backing —
@@ -194,6 +182,49 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 14. "Call time" is now offered in Add Event's type picker
+**Found in:** Task 12. **Fixed in:** the deficiencies-backlog pass
+following Task 27 (Group 5).
+`event_owner_matches_type` requires a `call_time` event to carry
+`competition_entry_id` (not `team_id`/`comp_team_id` directly) — so
+picking "Call time" doesn't insert/update the `event` table at all.
+Instead it calls `app.set_competition_entry_call_time` (the same RPC
+`CompetitionWizard`'s own Call Times step uses), which owns writing
+`competition_entry.call_time`/`duration_minutes` and syncing the real
+event via `app._sync_call_time_event` — avoiding a second, parallel
+implementation of that same insert/update/delete logic. Only offered for
+a `comp_team` destination that actually has at least one
+`competition_entry`, and only to a Director (matching the RPC's own
+authorization). When picked, Title/Location/Notes/"Push to families" all
+hide (the RPC doesn't take any of them — title is auto-generated as
+`{comp_team_name} · Call time`, location is the competition's venue, not
+a studio space); a competition picker appears only if the comp_team has
+more than one entry, auto-selecting silently when there's just one.
+
+Fixing this surfaced a second, real gap in the same code: a `call_time`
+event's `comp_team_id` is always `null` (same constraint), so the
+existing "move an event" pre-fill logic — which resolved destination
+from `team_id`/`comp_team_id` directly — could never have resolved a
+moved call_time event's destination at all. Fixed by also resolving
+through `competition_entry.comp_team_id` (one extra hop) when the moved
+event's type is `call_time`; the move submit path also now goes through
+the same RPC (handles "no event yet" and "moving an existing one"
+identically, no separate branch needed) rather than a raw `event` update
+that would have silently desynced `competition_entry.call_time` from the
+event's own displayed time.
+
+Verified live end-to-end: created a real published competition + entry,
+set its call time through this new path, confirmed
+`competition_entry.call_time`/`duration_minutes` and the real synced
+`event` row all matched; moved that same call_time event to a new time
+and confirmed it updated in place (no duplicate event) and the
+destination correctly resolved to the right Comp Team despite the
+`comp_team_id` column being null. Confirmed no regression: a Team
+destination still doesn't offer "Call time," and a normal class event
+still creates correctly through the unchanged path.
+
+
 
 ### 31. Essentials lists now support drag-to-reorder
 **Found in:** Task 19. **Fixed in:** the deficiencies-backlog pass

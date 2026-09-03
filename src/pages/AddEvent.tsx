@@ -20,14 +20,21 @@ interface DestOption {
   sublabel: string;
 }
 
-// The four picker "categories" the artboard shows — narrower than the four
-// real event_type enum values. Class/Rehearsal maps to 'class' (Team
+// The picker "categories" the artboard shows — narrower than the real
+// event_type enum values. Class/Rehearsal maps to 'class' (Team
 // destination) or 'rehearsal' (Comp Team destination); Studio time request,
 // Dancer meeting and Other all map to the generic 'booking' type, which the
 // live event_owner_matches_type probe (Task 12) confirmed tolerates any
-// owner shape including none — see docs/DEFICIENCIES.md for why "Call time"
-// isn't offered here (needs competition_entry, out of this task's Touches).
-type TypeChoice = "class_rehearsal" | "booking" | "meeting" | "other";
+// owner shape including none. Call time (docs/DEFICIENCIES.md #14) is
+// different in kind from the rest: event_owner_matches_type requires a
+// call_time event to carry competition_entry_id (not team/comp_team_id
+// directly), and app._sync_call_time_event already owns creating/updating
+// that exact row from competition_entry.call_time — so picking "Call time"
+// here doesn't insert an event at all, it calls
+// app.set_competition_entry_call_time (the same RPC CompetitionWizard's
+// own Call Times step uses) and lets that own function keep the event in
+// sync, rather than duplicating its insert/update logic a second time.
+type TypeChoice = "class_rehearsal" | "booking" | "meeting" | "call_time" | "other";
 
 const TYPE_META: Record<TypeChoice, { label: string; description: (isDirector: boolean) => string }> = {
   class_rehearsal: { label: "Class / Rehearsal", description: () => "Regular practice time" },
@@ -36,8 +43,31 @@ const TYPE_META: Record<TypeChoice, { label: string; description: (isDirector: b
     description: (isDirector) => (isDirector ? "Books a room" : "Books a room · sent to the Director for approval"),
   },
   meeting: { label: "Dancer meeting", description: () => "A sit-down, not a class" },
+  call_time: { label: "Call time", description: () => "For a competition or performance entry" },
   other: { label: "Other", description: () => "Not one of the above? Name it yourself." },
 };
+
+interface CompEntryOption {
+  entryId: string;
+  competitionId: string;
+  competitionName: string;
+  callTime: string | null;
+  durationMinutes: number;
+}
+
+interface MoveSource {
+  title: string | null;
+  event_type: EventType;
+  team_id: string | null;
+  comp_team_id: string | null;
+  studio_wide: boolean;
+  studio_space_id: string | null;
+  starts_at: string;
+  ends_at: string;
+  notes: string | null;
+  competition_entry_id: string | null;
+  competition_entry: { comp_team_id: string } | null;
+}
 
 type SpaceStatus = "ok" | "wait" | "busy";
 
@@ -63,17 +93,7 @@ export function AddEvent() {
   // change, matching approve()'s own conservative "move changes when and
   // where, not what or whose" behavior exactly.
   const movesEventId = searchParams.get("movesEvent");
-  const [moveSource, setMoveSource] = useState<{
-    title: string | null;
-    event_type: EventType;
-    team_id: string | null;
-    comp_team_id: string | null;
-    studio_wide: boolean;
-    studio_space_id: string | null;
-    starts_at: string;
-    ends_at: string;
-    notes: string | null;
-  } | null>(null);
+  const [moveSource, setMoveSource] = useState<MoveSource | null>(null);
   const [movePrefilled, setMovePrefilled] = useState(false);
 
   const [destOptions, setDestOptions] = useState<{ teams: DestOption[]; compTeams: DestOption[]; studio: DestOption } | null>(null);
@@ -82,6 +102,8 @@ export function AddEvent() {
 
   const [typeChoice, setTypeChoice] = useState<TypeChoice | null>(null);
   const [otherLabel, setOtherLabel] = useState("");
+  const [compEntries, setCompEntries] = useState<CompEntryOption[] | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [dateYMD, setDateYMD] = useState("");
   const [startHM, setStartHM] = useState("");
@@ -182,6 +204,40 @@ export function AddEvent() {
     };
   }, [person, isDirector]);
 
+  // Which competition(s) this comp_team is entered in — "Call time" needs a
+  // real competition_entry to attach to (event_owner_matches_type), and
+  // set_competition_entry_call_time is Director-only, so this is only
+  // fetched for a Director looking at a comp_team destination. Reset on
+  // every destination change, not just comp_team ones, so a stale list
+  // from a previously-selected comp_team can't leak into a new selection.
+  useEffect(() => {
+    setCompEntries(null);
+    if (moveSource) return; // moving an existing event pre-fills its own entry directly, not from this lookup
+    setSelectedEntryId(null);
+    if (!isDirector || !destination || destination.kind !== "comp_team") return;
+    let cancelled = false;
+    supabase
+      .from("competition_entry")
+      .select("id, competition_id, call_time, duration_minutes, competition:competition_id(name)")
+      .eq("comp_team_id", destination.id!)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const rows = (data ?? []) as unknown as { id: string; competition_id: string; call_time: string | null; duration_minutes: number; competition: { name: string } | null }[];
+        setCompEntries(
+          rows.map((r) => ({
+            entryId: r.id,
+            competitionId: r.competition_id,
+            competitionName: r.competition?.name ?? "Competition",
+            callTime: r.call_time,
+            durationMinutes: r.duration_minutes,
+          }))
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [destination, isDirector, moveSource]);
+
   // Pre-fill the destination from the Schedule screen that linked here
   // (?team=, ?compTeam=, or ?studioWide=1), once options have loaded.
   useEffect(() => {
@@ -207,11 +263,11 @@ export function AddEvent() {
     let cancelled = false;
     supabase
       .from("event")
-      .select("title, event_type, team_id, comp_team_id, studio_wide, studio_space_id, starts_at, ends_at, notes")
+      .select("title, event_type, team_id, comp_team_id, studio_wide, studio_space_id, starts_at, ends_at, notes, competition_entry_id, competition_entry:competition_entry_id(comp_team_id)")
       .eq("id", movesEventId)
       .single()
       .then(({ data }) => {
-        if (!cancelled && data) setMoveSource(data);
+        if (!cancelled && data) setMoveSource(data as unknown as MoveSource);
       });
     return () => {
       cancelled = true;
@@ -226,7 +282,14 @@ export function AddEvent() {
     if (!moveSource || !destOptions || !studio || movePrefilled) return;
     setMovePrefilled(true);
     setTitle(moveSource.title ?? "");
-    setTypeChoice(moveSource.event_type === "class" || moveSource.event_type === "rehearsal" ? "class_rehearsal" : "booking");
+    setTypeChoice(
+      moveSource.event_type === "class" || moveSource.event_type === "rehearsal"
+        ? "class_rehearsal"
+        : moveSource.event_type === "call_time"
+          ? "call_time"
+          : "booking"
+    );
+    if (moveSource.event_type === "call_time" && moveSource.competition_entry_id) setSelectedEntryId(moveSource.competition_entry_id);
     setNotes(moveSource.notes ?? "");
     setDateYMD(zonedDateKey(moveSource.starts_at, studio.timezone));
     setStartHM(hmInZone(moveSource.starts_at, studio.timezone));
@@ -238,6 +301,11 @@ export function AddEvent() {
       if (match) setDestination(match);
     } else if (moveSource.comp_team_id) {
       const match = destOptions.compTeams.find((c) => c.id === moveSource.comp_team_id);
+      if (match) setDestination(match);
+    } else if (moveSource.event_type === "call_time" && moveSource.competition_entry?.comp_team_id) {
+      // A call_time event's comp_team_id is always null (event_owner_matches_type)
+      // — its destination lives one hop further, through competition_entry.
+      const match = destOptions.compTeams.find((c) => c.id === moveSource.competition_entry!.comp_team_id);
       if (match) setDestination(match);
     }
   }, [moveSource, destOptions, studio, movePrefilled]);
@@ -259,12 +327,18 @@ export function AddEvent() {
 
   const typeOptions = useMemo<TypeChoice[]>(() => {
     if (!destination) return [];
+    const callTimeOption: TypeChoice[] = destination.kind === "comp_team" && compEntries && compEntries.length > 0 ? ["call_time"] : [];
     if (destination.kind === "studio") return ["booking", "meeting", "other"];
+    if (destination.kind === "comp_team") return [...callTimeOption, "class_rehearsal", "booking", "meeting", "other"];
     return ["class_rehearsal", "booking", "meeting", "other"];
-  }, [destination]);
+  }, [destination, compEntries]);
 
   function pickType(choice: TypeChoice) {
     setTypeChoice(choice);
+    if (choice === "call_time") {
+      if (compEntries && compEntries.length === 1) setSelectedEntryId(compEntries[0].entryId);
+      return; // title comes from the comp_team name, not user input
+    }
     if (!title.trim()) {
       if (choice === "meeting") setTitle("Dancer meeting");
       else if (choice === "booking") setTitle("Studio time request");
@@ -312,7 +386,13 @@ export function AddEvent() {
   }, [activeSheet, spaces, dateYMD, startHM, endHM, studio]);
 
   const canSubmit =
-    !!destination && !!typeChoice && title.trim().length > 0 && !!dateYMD && !!startHM && !!endHM && !submitting;
+    !!destination &&
+    !!typeChoice &&
+    (typeChoice === "call_time" ? !!selectedEntryId : title.trim().length > 0) &&
+    !!dateYMD &&
+    !!startHM &&
+    !!endHM &&
+    !submitting;
 
   async function handleSubmit() {
     if (!canSubmit || !destination || !typeChoice || !person || !studio) return;
@@ -327,7 +407,26 @@ export function AddEvent() {
         return;
       }
 
-      if (canCreateDirectly && movesEventId) {
+      if (typeChoice === "call_time") {
+        // Never a raw event insert/update — app.set_competition_entry_call_time
+        // (the same RPC CompetitionWizard's own Call Times step uses) owns
+        // writing competition_entry.call_time/duration_minutes and syncing
+        // the real event via app._sync_call_time_event. Handles both "no
+        // event yet" and "moving an existing call_time event" the same way
+        // (an upsert internally), so no separate move-branch is needed here.
+        if (!selectedEntryId) {
+          setErrorMsg("Choose which competition entry this call time is for.");
+          setSubmitting(false);
+          return;
+        }
+        const durationMinutes = Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60000);
+        const { error } = await callApp("set_competition_entry_call_time", {
+          p_entry_id: selectedEntryId,
+          p_call_time: startsAt,
+          p_duration_minutes: durationMinutes,
+        });
+        if (error) throw error;
+      } else if (canCreateDirectly && movesEventId) {
         // Moving an existing event only ever changes when and where it
         // happens — matches RequestReviewModal.approve()'s own move
         // branch exactly, never touching title/type/destination even
@@ -472,14 +571,29 @@ export function AddEvent() {
           </Row>
         </Field>
 
-        <Field label="Title">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Recital rehearsal"
-            style={fieldInputStyle}
-          />
-        </Field>
+        {typeChoice === "call_time" && compEntries && compEntries.length > 1 && (
+          <Field label="Competition">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {compEntries.map((entry) => (
+                <Row key={entry.entryId} onClick={() => setSelectedEntryId(entry.entryId)}>
+                  <Radio on={selectedEntryId === entry.entryId} />
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{entry.competitionName}</div>
+                </Row>
+              ))}
+            </div>
+          </Field>
+        )}
+
+        {typeChoice !== "call_time" && (
+          <Field label="Title">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Recital rehearsal"
+              style={fieldInputStyle}
+            />
+          </Field>
+        )}
 
         <Field label="Date">
           <input type="date" value={dateYMD} onChange={(e) => setDateYMD(e.target.value)} style={fieldInputStyle} />
@@ -494,17 +608,23 @@ export function AddEvent() {
           </Field>
         </div>
 
-        <Field label="Location">
-          <Row onClick={() => setActiveSheet("location")}>
-            <IconTile>
-              <MapPinIcon />
-            </IconTile>
-            <div style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
-              {spaceId ? spaces?.find((s) => s.id === spaceId)?.name : spaces && spaces.length === 0 ? "No spaces set up yet" : "Choose a location…"}
-            </div>
-            <ChevronIcon />
-          </Row>
-        </Field>
+        {typeChoice === "call_time" ? (
+          <p style={{ fontSize: 11.5, color: "var(--ink-3)", lineHeight: 1.5 }}>
+            Call times happen at the competition's own venue, not one of the studio's spaces — no location to set here.
+          </p>
+        ) : (
+          <Field label="Location">
+            <Row onClick={() => setActiveSheet("location")}>
+              <IconTile>
+                <MapPinIcon />
+              </IconTile>
+              <div style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
+                {spaceId ? spaces?.find((s) => s.id === spaceId)?.name : spaces && spaces.length === 0 ? "No spaces set up yet" : "Choose a location…"}
+              </div>
+              <ChevronIcon />
+            </Row>
+          </Field>
+        )}
 
         {!canCreateDirectly && (
           <Toggle
@@ -515,17 +635,19 @@ export function AddEvent() {
           />
         )}
 
-        <Field label="Notes (optional)">
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Bring both costume pieces for spacing run"
-            rows={3}
-            style={{ ...fieldInputStyle, resize: "vertical", fontFamily: "inherit" }}
-          />
-        </Field>
+        {typeChoice !== "call_time" && (
+          <Field label="Notes (optional)">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Bring both costume pieces for spacing run"
+              rows={3}
+              style={{ ...fieldInputStyle, resize: "vertical", fontFamily: "inherit" }}
+            />
+          </Field>
+        )}
 
-        {destination && destination.kind !== "studio" && (
+        {typeChoice !== "call_time" && destination && destination.kind !== "studio" && (
           <Toggle
             label={`Push to ${destination.name} families`}
             sublabel="Notified once this is saved"
