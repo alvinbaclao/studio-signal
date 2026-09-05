@@ -39,6 +39,7 @@ interface RawEvent {
   team_id: string | null;
   comp_team_id: string | null;
   studio_wide: boolean;
+  competition_entry_id: string | null;
 }
 
 interface AttentionItem {
@@ -77,6 +78,7 @@ export function HomeUnified() {
   const [destCards, setDestCards] = useState<DestCard[] | null>(null);
   const [roleByDest, setRoleByDest] = useState<Map<string, DestRole> | null>(null);
   const [weekEvents, setWeekEvents] = useState<RawEvent[] | null>(null);
+  const [competitionIdByEntry, setCompetitionIdByEntry] = useState<Map<string, string>>(new Map());
   const [attention, setAttention] = useState<AttentionItem[] | null>(null);
   const [highlights, setHighlights] = useState<HighlightItem[] | null>(null);
   const [inboxThreads, setInboxThreads] = useState<InboxThread[] | null>(null);
@@ -170,21 +172,35 @@ export function HomeUnified() {
     };
   }, [person]);
 
-  // This week's events, across everything RLS shows this person.
+  // This week's events, across everything RLS shows this person. Also
+  // resolves a call_time event's competition (one hop further, via
+  // competition_entry — a call_time event's own comp_team_id is always
+  // null by design, same fact Deficiency #14/#20 already needed) so
+  // "Next up" can link straight into CompetitionOverview (Deficiency #22).
   useEffect(() => {
     if (!person || !studio) return;
     let cancelled = false;
-    const { start, end } = weekRangeInZone(new Date(), studio.timezone);
-    supabase
-      .from("event")
-      .select("id, title, event_type, starts_at, ends_at, team_id, comp_team_id, studio_wide")
-      .is("cancelled_at", null)
-      .gte("starts_at", start.toISOString())
-      .lt("starts_at", end.toISOString())
-      .order("starts_at")
-      .then(({ data }) => {
-        if (!cancelled) setWeekEvents(data ?? []);
-      });
+    async function load() {
+      const { start, end } = weekRangeInZone(new Date(), studio!.timezone);
+      const { data } = await supabase
+        .from("event")
+        .select("id, title, event_type, starts_at, ends_at, team_id, comp_team_id, studio_wide, competition_entry_id")
+        .is("cancelled_at", null)
+        .gte("starts_at", start.toISOString())
+        .lt("starts_at", end.toISOString())
+        .order("starts_at");
+      if (cancelled) return;
+      setWeekEvents(data ?? []);
+
+      const entryIds = [...new Set((data ?? []).filter((e) => e.competition_entry_id).map((e) => e.competition_entry_id!))];
+      if (entryIds.length === 0) {
+        setCompetitionIdByEntry(new Map());
+        return;
+      }
+      const { data: entryRows } = await supabase.from("competition_entry").select("id, competition_id").in("id", entryIds);
+      if (!cancelled) setCompetitionIdByEntry(new Map((entryRows ?? []).map((r) => [r.id, r.competition_id])));
+    }
+    load();
     return () => {
       cancelled = true;
     };
@@ -363,16 +379,29 @@ export function HomeUnified() {
           <p style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 11 }}>Nothing coming up this week.</p>
         ) : (
           <div style={{ display: "flex", gap: 10, marginTop: 10, overflowX: "auto", paddingBottom: 2 }}>
-            {nextUp.map(({ event, role, displayTitle }) => (
-              <div key={event.id} className="card" style={{ flex: "0 0 168px", padding: "14px 15px", border: "1px solid var(--hairline)", borderRadius: 16 }}>
-                {role && <RoleChip label={role.chipLabel} tone={role.chipTone} />}
-                <div style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600, marginTop: role ? 8 : 0 }}>
-                  {dayLabel(event.starts_at, studio.timezone)} · {formatTimeInZone(event.starts_at, studio.timezone).main}
-                  {formatTimeInZone(event.starts_at, studio.timezone).meridiem.toUpperCase()}
+            {nextUp.map(({ event, role, displayTitle }) => {
+              const competitionId = event.competition_entry_id ? competitionIdByEntry.get(event.competition_entry_id) : undefined;
+              const cardStyle: React.CSSProperties = { flex: "0 0 168px", padding: "14px 15px", border: "1px solid var(--hairline)", borderRadius: 16, color: "inherit", textDecoration: "none" };
+              const inner = (
+                <>
+                  {role && <RoleChip label={role.chipLabel} tone={role.chipTone} />}
+                  <div style={{ fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600, marginTop: role ? 8 : 0 }}>
+                    {dayLabel(event.starts_at, studio.timezone)} · {formatTimeInZone(event.starts_at, studio.timezone).main}
+                    {formatTimeInZone(event.starts_at, studio.timezone).meridiem.toUpperCase()}
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3 }}>{displayTitle}</div>
+                </>
+              );
+              return competitionId ? (
+                <Link key={event.id} to={`/competition/${competitionId}`} className="card" style={cardStyle}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={event.id} className="card" style={cardStyle}>
+                  {inner}
                 </div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, marginTop: 3 }}>{displayTitle}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

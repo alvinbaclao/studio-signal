@@ -28,18 +28,16 @@ is interactive but doesn't affect the saved event or booking request in
 any way. Revisit alongside #6 if real notification delivery is ever
 added.
 
-### 22. Unified Home's "Needs your attention" band and "Next up" are narrower than the artboard
+### 22. Unified Home's "Needs your attention" band is narrower than the artboard
 **Found in:** Task 14. **Narrowed in:** the deficiencies-backlog pass
 following Task 27 (Group 1: Inbox fixed, see #43, Resolved; Group 3:
 Highlights now shows real thumbnails, see the Storage-bucket Resolved
-entry). This entry now covers only what's left.
+entry; "Next up" → CompetitionOverview linking, see the Resolved entry
+below). This entry now covers only what's left.
 `HomeUnified.dc.html`'s "Needs your attention" band mixes in "urgent
 messages" and general "schedule changes" alongside booking requests —
 only the booking-request half is real (there's no notification table for
-the other two — see #17/#26). "Next up" also doesn't surface competition/
-call-time cards the way the artboard's Regional Classic example does —
-`CompetitionOverview` exists now (Task 24), `HomeUnified`'s own "Next up"
-card just doesn't link to it yet.
+the other two — see #17/#26).
 
 ### 26. Notification preferences are collected client-side only
 **Found in:** Task 16.
@@ -107,6 +105,31 @@ it would need the biggest schema surface of anything in this backlog
 Worth a dedicated design pass if pursued later, not a quick add.
 
 ## Resolved
+
+### 22 (part). "Next up" now links into CompetitionOverview for a call-time event
+**Found in:** Task 14. **Fixed in:** the deficiencies-backlog pass
+following the #29 reaction-picker work.
+`HomeUnified.dc.html`'s Regional Classic example shows a "Next up" card
+that opens straight into that competition — the real `HomeUnified.tsx`
+never linked anywhere. Fixed by resolving each week-event's
+`competition_entry_id` to its `competition_entry.competition_id` (the
+same one-hop-further join `event_competition_entry_id_fkey` already
+required for Deficiencies #14 and #20, since a `call_time` event's own
+`comp_team_id` is always null by design) in the same effect that already
+loads the week's events, then wrapping a "Next up" card in a `Link` to
+`/competition/:id` whenever that lookup resolves. Every non-competition
+card is unaffected — same plain, unlinked div as before.
+
+Checked against the live linked database before committing (read-only
+`SELECT` joining `event`/`competition_entry`/`competition`, approved
+one-off by the user) rather than assumed: zero real `call_time` events
+exist in the database at all right now, so this couldn't be exercised
+against real data end-to-end the way this file's other entries were.
+Verification instead rests on the schema shapes matching
+`database.types.ts` (generated from this same live project) and on
+reusing the identical join already proven live in #14/#20/#24 — not a
+fresh, unverified assumption. Revisit with a real click-test once a
+competition entry actually gets a call time set again.
 
 ### 29. Bulletin now has a real multi-emoji reaction picker
 **Found in:** Task 17. **Fixed in:** the deficiencies-backlog pass
