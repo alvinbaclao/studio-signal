@@ -4,6 +4,13 @@
 # working directory name when running `supabase init`.
 project_id = "Frontend"
 
+# Task 28 — this function is called only by a Postgres database trigger
+# (supabase/migrations, via supabase_functions.http_request), never by a
+# signed-in user, so it can't carry a real user JWT. Authenticated instead
+# by a shared secret checked in the function itself (NOTIFY_WEBHOOK_SECRET).
+[functions.notify-push]
+verify_jwt = false
+
 [api]
 enabled = true
 # Port to use for the API URL.
