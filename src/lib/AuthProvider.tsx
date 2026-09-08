@@ -84,6 +84,15 @@ async function loadCurrentPerson(): Promise<CurrentPerson | null> {
   return { ...person, roles };
 }
 
+// Despia (BUILD_PLAN Task 28) injects a global `despia()` bridge only inside
+// the native-wrapped app — this is a silent no-op in plain-browser dev/
+// Vercel preview, by design, so this file needs no environment branching.
+function callDespia(url: string) {
+  const bridge = (window as unknown as { despia?: (url: string) => void })
+    .despia;
+  if (typeof bridge === "function") bridge(url);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [person, setPerson] = useState<CurrentPerson | null | undefined>(
@@ -126,6 +135,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Once a real, confirmed person is available, link this device's OneSignal
+  // Player ID to their person.id (never a device token stored in Supabase —
+  // see BUILD_PLAN Task 28) and prompt for push permission at this
+  // deliberately-chosen moment (onboarding just finished), not on cold app
+  // launch. Keyed on both id and status so a pending→confirmed transition
+  // re-fires this even though id didn't change.
+  useEffect(() => {
+    if (person && person.status === "confirmed") {
+      callDespia(`setonesignalplayerid://?user_id=${person.id}`);
+      callDespia("registerpush://");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [person?.id, person?.status]);
 
   return (
     <AuthContext.Provider
