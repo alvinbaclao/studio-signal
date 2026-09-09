@@ -93,6 +93,17 @@ function callDespia(url: string) {
   if (typeof bridge === "function") bridge(url);
 }
 
+// OneSignal Web Push (Task 28) — the browser counterpart to the Despia
+// bridge above, for anyone using this app in a plain desktop/mobile
+// browser rather than the wrapped native app. index.html already queues
+// OneSignal.init() via this same window.OneSignalDeferred array, so
+// pushing here is safe whether or not the SDK script has finished loading.
+function callOneSignal(fn: (OneSignal: { login: (id: string) => Promise<void>; Notifications: { requestPermission: () => Promise<void> } }) => void) {
+  const w = window as unknown as { OneSignalDeferred?: Array<(OneSignal: never) => void> };
+  w.OneSignalDeferred = w.OneSignalDeferred || [];
+  w.OneSignalDeferred.push(fn as (OneSignal: never) => void);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [person, setPerson] = useState<CurrentPerson | null | undefined>(
@@ -146,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (person && person.status === "confirmed") {
       callDespia(`setonesignalplayerid://?user_id=${person.id}`);
       callDespia("registerpush://");
+      callOneSignal((OneSignal) => {
+        OneSignal.login(person.id).then(() => OneSignal.Notifications.requestPermission());
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [person?.id, person?.status]);
