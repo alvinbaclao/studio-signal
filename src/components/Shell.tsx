@@ -59,7 +59,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { person } = useAuth();
   const isDirector = hasRole(person, "director");
   const studio = useStudio();
-  const { forceDesktop } = useViewport();
+  const { forceDesktop, physicalDesktop, setForceDesktop } = useViewport();
 
   return (
     <div className={forceDesktop ? "shell force-desktop" : "shell"}>
@@ -88,6 +88,19 @@ export function Shell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Only meaningful when forceDesktop is the only reason we're
+            showing the rail — on a genuinely wide window there's nothing
+            to "switch back" to, so this stays hidden there. */}
+        {forceDesktop && !physicalDesktop && (
+          <button
+            type="button"
+            onClick={() => setForceDesktop(false)}
+            className="shell-rail-switch-mobile"
+          >
+            Switch to mobile view
+          </button>
         )}
       </nav>
 

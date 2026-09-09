@@ -12,6 +12,10 @@ interface ViewportState {
    *  sync via forceDesktop below rather than duplicating the media query
    *  in JS. */
   isDesktop: boolean;
+  /** The real >=900px media query, ignoring forceDesktop — lets a caller
+   *  (Shell's own "Switch to mobile view") tell "genuinely wide" apart
+   *  from "narrow but forced," which `isDesktop` alone can't distinguish. */
+  physicalDesktop: boolean;
   forceDesktop: boolean;
   setForceDesktop: (value: boolean) => void;
 }
@@ -36,7 +40,7 @@ export function ViewportProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ViewportContext.Provider value={{ isDesktop: matchesWidth || forceDesktop, forceDesktop, setForceDesktop }}>
+    <ViewportContext.Provider value={{ isDesktop: matchesWidth || forceDesktop, physicalDesktop: matchesWidth, forceDesktop, setForceDesktop }}>
       {children}
     </ViewportContext.Provider>
   );
